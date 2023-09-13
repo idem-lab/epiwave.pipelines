@@ -18,11 +18,13 @@ estimate_delays <- function(notification_delay_data,
                             time_varying = TRUE) {
 
     if (time_varying) {
-        delays <- notification_delay_data %>% group_by(days) %>%
-            summarise(delay_ecdf = list(ecdf(delay)))
+        delays <- notification_delay_data |>
+            dplyr::group_by(days) |>
+            dplyr::summarise(delay_ecdf = list(ecdf(delay)))
     } else {
-        delays <- notification_delay_data %>% group_by(days) %>%
-            summarise(delay_ecdf = list(ecdf(notification_delay_data$delay)))
+        delays <- notification_delay_data |>
+            dplyr::group_by(days) |>
+            dplyr::summarise(delay_ecdf = list(ecdf(notification_delay_data$delay)))
     }
 
     # #save choice for time varying or not
@@ -33,5 +35,4 @@ estimate_delays <- function(notification_delay_data,
     # )
     #save just the delays
     return(delays)
-
 }

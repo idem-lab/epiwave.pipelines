@@ -5,24 +5,24 @@
 #' combined delay are calculated.
 #'
 #' @param delay_range
+#' @param ecdf1
 #' @param ecdf2
 #' @param output
 #' @param stefun_output
-#' @param ecdf1
 #'
 #' @return
 #' @export
 #'
 #' @examples
-delay_constructor <- function(delay_range = c(-3,28),
+delay_constructor <- function(delay_range = c(-3, 28),
                               ecdf1,
                               ecdf2 = NULL,
-                              output = c("probability","cumulative density"),
+                              output = c("probability", "cumulative density"),
                               stefun_output = FALSE) {
 
 
     # days of delay
-    days <- seq(delay_range[1],delay_range[2])
+    days <- seq(delay_range[1], delay_range[2])
 
     if (is.null(ecdf2)) {
         # get discretised probability
@@ -36,19 +36,18 @@ delay_constructor <- function(delay_range = c(-3,28),
         p2 <- approxfun(days,p2, rule = 2)
 
         #compute combined p
-        p <- expand_grid(
+        p <- tidyr::expand_grid(
             x = days,
-            z = days
-        ) %>%
-            filter(x - z >= 0) %>%
-            group_by(x) %>%
-            summarise(p = sum(p1(z + 1) * p2(x - z + 1))) %>%
-            pull(p)
+            z = days) |>
+            dplyr::filter(x - z >= 0) |>
+            dplyr::group_by(x) |>
+            dplyr::summarise(p = sum(p1(z + 1) * p2(x - z + 1))) |>
+            dplyr::pull(p)
 
         #remove negative delay prob since notification cannot precede infection assuming that some
         #preventive measure has taken place once the "would-be" infectee is notified
-        p[days<0] <- 0
-        p <- p/sum(p)
+        p[days < 0] <- 0
+        p <- p / sum(p)
 
         }
 
@@ -56,14 +55,14 @@ delay_constructor <- function(delay_range = c(-3,28),
         if (stefun_output) {
             return(approxfun(days,p, rule = 2))
         } else {
-            return(tibble(days,p))
+            return(tibble::tibble(days,p))
         }
     } else {
         if (stefun_output) {
             #should we allow this? this literally just spits back out the input ecdf
-            return(make_ecdf(p,days))
+            return(make_ecdf(p, days))
         } else {
-            return(tibble(days,cumsum(p)))
+            return(tibble::tibble(days, cumsum(p)))
         }
     }
 
