@@ -27,7 +27,7 @@ fit_model <- function (combined_model_objects,
     )
 
     # if it did not converge, try extending it a bunch more times
-    finished <- converged(draws)
+    finished <- check_convergence(draws)
     tries <- 1
     while(!finished & tries < max_convergence_tries) {
         draws <- greta::extra_samples(
@@ -36,7 +36,7 @@ fit_model <- function (combined_model_objects,
             one_by_one = TRUE
         )
         tries <- tries + 1
-        finished <- converged(draws)
+        finished <- check_convergence(draws)
     }
 
     # warn if we timed out before converging successfully
@@ -46,3 +46,33 @@ fit_model <- function (combined_model_objects,
 
     return(draws)
 }
+
+# has the sampler converged to our standards?
+check_convergence <- function(draws, max_r_hat = 1.1, min_n_eff = 1000) {
+    stats <- get_convergence_stats(draws)
+    all(stats$r_hats < max_r_hat) &
+        all(stats$n_eff >= min_n_eff)
+}
+
+# check convergence
+get_convergence_stats <- function(draws) {
+
+    r_hats <- coda::gelman.diag(draws, autoburnin = FALSE,
+                                multivariate = FALSE)$psrf[, 1]
+    n_eff <- coda::effectiveSize(draws)
+
+    # sometimes n_eff underflows to 0 simply because the values beinng traced are
+    # very small, so remove these (exactly 0 is not possible)
+    n_eff <- n_eff[n_eff != 0]
+
+    cat(sprintf("maximum R-hat: %.2f\nminimum n effective: %.2f",
+                max(r_hats, na.rm = TRUE),
+                min(n_eff)))
+
+    result <- list(r_hats = r_hats,
+                   n_eff = n_eff)
+
+    invisible(result)
+
+}
+
