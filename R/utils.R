@@ -1,0 +1,106 @@
+#' convolve a timeseries matrix forward through time according to a mass function or a list of mass
+#' functions representing the delay distribution, using the matrix multiply approach. An optional
+#' proportion argument is multiplied to the convolved timeseries to represent the effect of
+#' probabilistic outcomes such as eg being ascertained as a case given infection or hospitalisation
+#' given infection. The proportion arg should be of length 1 (same proportion across all dates and
+#' jurisdictions) or a matrix of the same size as the input timeseries_matrix
+#'
+#' @param timeseries_matrix
+#' @param mass_functions
+#' @param proportion
+#'
+#' @return
+#'
+#' @examples
+convolve <- function(timeseries_matrix, # date by state
+                     mass_functions, # list of one col dates - should be matrix by state
+                     proportion = 1) {
+
+    # get convolution matrix
+    convolution_matrix <- get_convolution_matrix(mass_functions, nrow(timeseries_matrix))
+
+    # CREATE DATExSTATE COMPLETION PROBABILITY MATRIX FROM THIS
+    # ADD TO THE TIMESERIES OUTPUT
+
+
+
+    # if mass_functions is matrix
+    # apply(mass_functions, 2, get_convolution_matrix)
+    # == list of convolution_matrix
+    # for (state in 1:ncols(timeseries_matrix)) {
+    #     convolution_matrices[[state]] %*% timeseries_matrix[,state] * proportion[,state]
+    # }
+
+    # do the convolution
+    convolution_matrix %*% timeseries_matrix * proportion
+
+}
+
+#' get a matrix to use for forward convolution, given the mass function(s) (integrating to 1 for
+#' convolution) and the number of timepoints to convolve. This function can take either a single
+#' mass function, or a list of mass functions with length = n. The latter parametrisation is
+#' necessary when the delay mass function is time varying. Note that we need to think about if we
+#' should make explicit if the user is inputting a single mass function or a list of mass functions
+#'
+#' @param mass_functions
+#' @param n
+#'
+#' @return
+#'
+#' @examples
+get_convolution_matrix <- function(mass_functions, n) {
+
+    # get a matrix of time differences between pairs of days
+    day_diff <- matrix(NA, n, n)
+    day_diff <- row(day_diff) - col(day_diff)
+
+    if (length(mass_functions) == 1) {
+        # apply the single mass function
+        message("using a single mass function for all time points!")
+        matrix(mass_functions(day_diff), n, n)
+    } else {
+        if (length(mass_functions) != n) {
+            stop("number of mass functions do not match the number of timepoints!")
+        } else {
+            # apply the matching mass functions to these delays
+            matrix(as.numeric(mapply(function(f, x) do.call(f, list(x)),
+                                     mass_functions,
+                                     day_diff)), n, n)
+        }
+    }
+
+}
+
+#' convert a vector fo cumulative probabilities into an ecdf object
+#'
+#' @param y
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+make_ecdf <- function(y, x) {
+
+    sims <- sample(x,
+                   100,
+                   prob = y,
+                   replace = TRUE)
+
+    ecdf_null <- ecdf(sims)
+    envir <- environment(ecdf_null)
+
+    # rebuild an ecdf object, the slow way
+    method <- 2L
+    yleft <- 0
+    yright <- 1
+    f <- envir$f
+    n <- envir$nobs
+    rval <- function (v) {
+        stats:::.approxfun(x, y, v, method, yleft, yright, f)
+    }
+    class(rval) <- c("ecdf", "stepfun", class(rval))
+    assign("nobs", n, envir = environment(rval))
+    attr(rval, "call") <- attr(ecdf_null, "call")
+    rval
+}
