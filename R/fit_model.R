@@ -6,14 +6,12 @@ fit_model <- function (combined_model_objects,
                        iterations_per_step = 1000) {
 
     m <- model(combined_model_objects$infections,
-               combined_model_objects$expected_cases,
-               combined_model_objects$gp_lengthscale)
+               combined_model_objects$reff)
 
-    #get stable inits
+    # get stable inits
     init <- generate_valid_inits(model = m,
                                  chains = n_chains,
-                                 max_tries = 1000
-    )
+                                 max_tries = 1000)
 
     # first pass at model fitting
     draws <- mcmc(
@@ -61,7 +59,7 @@ get_convergence_stats <- function(draws) {
                                 multivariate = FALSE)$psrf[, 1]
     n_eff <- coda::effectiveSize(draws)
 
-    # sometimes n_eff underflows to 0 simply because the values beinng traced are
+    # sometimes n_eff underflows to 0 simply because the values being traced are
     # very small, so remove these (exactly 0 is not possible)
     n_eff <- n_eff[n_eff != 0]
 
@@ -73,6 +71,5 @@ get_convergence_stats <- function(draws) {
                    n_eff = n_eff)
 
     invisible(result)
-
 }
 

@@ -17,21 +17,21 @@
 #' @export
 #'
 #' @examples
-make_incubation_period_cdf <- function(strain = c("WT",
-                                                  "Alpha",
-                                                  "Beta/Gamma",
-                                                  "Delta",
-                                                  "Omicron")
-                                       ) {
+make_incubation_period_cdf <- function(
+        strain = c("WT",
+                   "Alpha",
+                   "Beta/Gamma",
+                   "Delta",
+                   "Omicron")) {
 
     strain <- match.arg(strain)
 
     if (strain == "Omicron") {
-        prob <- c(0.05,0.5,0.95)
-        estimate <- c(2.88,3.42,3.96)
+        prob <- c(0.05, 0.5, 0.95)
+        estimate <- c(2.88, 3.42, 3.96)
     }
 
-    cdf <- make_ecdf(prob,estimate)
+    cdf <- make_ecdf(prob, estimate)
 
     return(cdf)
 }
