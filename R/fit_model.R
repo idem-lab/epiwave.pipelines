@@ -5,7 +5,7 @@ fit_model <- function (combined_model_objects,
                        init_n_samples = 1000,
                        iterations_per_step = 1000) {
 
-    m <- model(combined_model_objects$infections,
+    m <- model(combined_model_objects$infections_timeseries,
                combined_model_objects$reff)
 
     # get stable inits
