@@ -1,17 +1,20 @@
-calculate_n_days_infection <- function(delay_list) {
+calculate_days_infection <- function(delay_list) {
+
+    earliest_date <- as.Date(do.call(min, lapply(delay_list, function(df) min(rownames(df)))))
 
     #infection burnin in days, defined by the max notification delay at the start
     max_burnin <- do.call(max, lapply(delay_list, function(df)
         max(which(df[[1]](0:28) != 0)))) # how long is longest possible delay
-#df[[1]] pulls first step function (delay on first day)
     # outputs vector of probabilities of infection being delayed between 0 and 28 days
 
-    max_days <- do.call(max, lapply(delay_list, function(df) length(df)))
-# delays objects are list of prob mass functions?
+    latest_date <- as.Date(do.call(max, lapply(delay_list, function(df) max(rownames(df)))))
 
-    n_days_infection <- max_days + max_burnin
-# do we want to also export the actual starting date?
-    return(n_days_infection)
+    infection_seq <- seq(
+        from = earliest_date - max_burnin,
+        to = latest_date,
+        by = 'day')
+
+    return(infection_seq)
 }
 
 # a <- data.frame(c = 1:4, d = 1:4)
