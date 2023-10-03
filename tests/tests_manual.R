@@ -178,8 +178,8 @@ infections_sims <- calculate(combined_model_objects$infections_timeseries,
 #
 # View(infections_sim)
 #
-gp_lengthscale_sim <- calculate(greta_arrays$gp_lengthscale,
-                                values = draws,
+gp_lengthscale_sim <- calculate(test_fit$greta_arrays$gp_lengthscale,
+                                values = test_fit$draws,
                                 nsim = 100)
 
 gp_lengthscale_sim <- apply(gp_lengthscale_sim[[1]], 2:3, FUN = "mean")
