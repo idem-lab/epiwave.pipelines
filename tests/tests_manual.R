@@ -1,8 +1,3 @@
-#test workflow script for new reff model, including codes to load real and
-#simulated data
-
-
-library(tidyverse)
 library(greta.gp)
 library(greta)
 #the following two packages are used by init helper codes, note this only works
@@ -10,131 +5,159 @@ library(greta)
 library(tensorflow)
 library(greta.dynamics)
 
+R.utils::sourceDirectory('R/')
+
 module <- greta::.internals$utils$misc$module
-# simulate data -----------------------------------------------------------
 
-#load real case count data if using
-#this is not pushed up because of data sharing permission barriers
-reff_data <- readRDS("tests/reff_data_2023_08_17.rds")
+linelist_file <- "data-raw/linelist_processed_2023_09_21.rds"
+linelist <- readRDS(linelist_file)
+# order by date?
 
-local_cases <- reff_data$local$cases
+local_summary <- summarise_linelist(linelist,
+                                    import_status_option = 'local')
+PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
+RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
 
-dates <- reff_data$dates$onset
-states <- reff_data$states
+# notification_matrix <- readRDS("tests/sim_case_data.RData")
+## ensure all have all jurisdictions even if some test types only have
+jurisdictions <- unique(linelist$state)
 
-#test with sim data
-local_cases <- readRDS("tests/sim_case_data.RData")
-dates <- seq_len(nrow(local_cases))
-states <- colnames(local_cases)
-#fake some delay data
-set.seed(2023-06-26)
+# set state names
+# if (is.null(jurisdiction_names)) {
+#     jurisdictions <- colnames(notification_matrix)
+# } else if (length(jurisdiction_names) != ncol(notification_matrix)) {
+#     stop("Error: supplied jurisdiction names has different length from number of columns in notification matrix")
+# } else {
+#     jurisdictions <- jurisdiction_names
+# }
 
-notification_delay_data <- tibble(
-    days = sample(seq_along(dates),length(dates)*100,replace = T),
-    delay = ceiling(rnorm(length(dates)*100,mean = 4,sd = 0.5)) #rep(3,n_days*100)
-)
+n_jurisdictions <- length(jurisdictions)
 
-# fake delay ecdf
-source("R/estimate_delays.R")
-notification_delay_function_raw <- estimate_delays(
-    notification_delay_data = notification_delay_data,
-    time_varying = TRUE #currently testing if time-fixed delay help with convergence
-)
+incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 
-#quick check delay behaviour
-lapply(1:5,FUN = function(x){ notification_delay_function_raw$delay_ecdf[x][[1]](1:5)})
-# add functions to combine an incubation period distribution ( from
-# literature) with an onset to notification distribution ( from linelist
-# data)
-source("R/make_incubation_period_cdf.R")
-source("R/make_ecdf.R")
-incubation_period <- make_incubation_period_cdf(strain = "Omicron")
+# testing new delay function
+# make this separate for pcr and rat
+PCR_delay_dist_mat <- estimate_delays(
+    linelist[linelist$test_type == 'PCR',],
+    jurisdictions)
 
-#put together data
-source("R/reff_model_data.R")
-source("R/delay_constructor.R")
-#debugonce(reff_model_data)
-test_data <- reff_model_data(notification_matrix = local_cases,
-                             jurisdiction_names = states,
-                             dates = dates,
-                             notification_delay_distribution = notification_delay_function_raw$delay_ecdf,
-                             incubation_period_distribution = incubation_period,
-                             assume_constant_ascertainment = TRUE,
-                             constant_ascertainment_fraction = 1
-                             )
+RAT_delay_dist_mat <- estimate_delays(
+    linelist[linelist$test_type == 'RAT',],
+    jurisdictions)
+
+# apply construct_delays to each cell
+# combine the incubation and notification delays
+# this function only works if there are no "null" in the delay_dist_mats.
+# therefore revert_to_national must be true
+PCR_notification_delay_distribution <- apply(
+    PCR_delay_dist_mat,
+    c(1,2), construct_delays,
+    ecdf2 = incubation_period_distribution,
+    output = "probability",
+    stefun_output = TRUE)
+
+RAT_notification_delay_distribution <- apply(
+    RAT_delay_dist_mat,
+    c(1,2), construct_delays,
+    ecdf2 = incubation_period_distribution,
+    output = "probability",
+    stefun_output = TRUE)
+
+delay_list <- list(PCR_notification_delay_distribution,
+                   RAT_notification_delay_distribution)
+infection_days <- calculate_days_infection(delay_list)
+n_days_infection <- length(infection_days)
+
+PCR_timevarying_CAR <- matrix(0.75, nrow = n_days_infection,
+                              ncol = n_jurisdictions,
+                              dimnames = list(infection_days, jurisdictions))
+RAT_timevarying_CAR <- matrix(0.75, nrow = n_days_infection,
+                              ncol = n_jurisdictions,
+                              dimnames = list(infection_days, jurisdictions))
+# prepare_ascertainment_input(
+# assume_constant_ascertainment = TRUE,
+# constant_ascertainment_fraction = 1)
+
+infection_model_objects <- create_infection_timeseries(
+    n_jurisdictions,
+    n_days_infection)
+
+PCR_notification_model_objects <- create_model_notification_data(
+    infections_timeseries = infection_model_objects$infections_timeseries,
+    timevarying_delay_dist = PCR_notification_delay_distribution,
+    timevarying_proportion = PCR_timevarying_CAR,
+    timeseries_data = PCR_matrix)
+
+RAT_notification_model_objects <- create_model_notification_data(
+    infections_timeseries = infection_model_objects$infections_timeseries,
+    timevarying_delay_dist = RAT_notification_delay_distribution,
+    timevarying_proportion = RAT_timevarying_CAR,
+    timeseries_data = RAT_matrix)
+
+# infection completion probability matrices
+PCR_infection_completion_prob_mat <- create_infection_compl_mat(
+    PCR_notification_model_objects$convolution_matrices,
+    jurisdictions)
+
+RAT_infection_completion_prob_mat <- create_infection_compl_mat(
+    RAT_notification_model_objects$convolution_matrices,
+    jurisdictions)
 
 
-#build model
-source("R/compute_infections.R")
-source("R/convolve.R")
-source("R/get_convolution_matrix.R")
-source(("R/reff_model.R"))
-# #debugonce(reff_model)
-# test_model <- reff_model(data = test_data)
+# priors for the parameters of the lognormal distribution over the serial interval from Nishiura et
+# al., as stored in the EpiNow source code
+nishiura_samples <- readr::read_csv(
+    file = "data/nishiura_samples.csv",
+    col_types = readr::cols(param1 = readr::col_double(),
+                            param2 = readr::col_double()))
 
-# model fitting -----------------------------------------------------------
+generation_interval_distribution <- make_generation_interval_cdf(
+    nishiura_samples)
 
-source("R/generate_valid_inits_and_helpers.R")
-source("R/fit_reff_model.R")
-source("R/converged.R")
-source("R/convergence.R")
+reff_model_objects <- estimate_reff(
+    infections_timeseries = infection_model_objects$infections_timeseries,
+    generation_interval_mass_fxns = generation_interval_distribution)
 
-debugonce(reff_model)
-test_fit <- reff_model(data = test_data)
+combined_model_objects <- c(infection_model_objects,
+                            PCR_notification_model_objects,
+                            RAT_notification_model_objects,
+                            reff_model_objects)
+
+fit <- fit_model(combined_model_objects,
+                 n_chains = 4,
+                 max_convergence_tries = 1,
+                 warmup = 500,
+                 init_n_samples = 1000,
+                 iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
+
+# reff <- calculate(fit)
+
+###=== IN DEV
 
 
 
-# test_init <- generate_valid_inits(model = test_model$greta_model,
-#                                   chains = 4,
-#                                   max_tries = 500
-#                                   )
-#
-# greta_model <- test_model$greta_model
-# greta_arrays <- test_model$greta_arrays
-#
-# with(greta_arrays,
-#      draws <- mcmc(model = greta_model,
-#                    warmup = 1000,
-#                    n_samples = 1000,
-#                    chains = 4,
-#                    initial_values = test_init,
-#                    one_by_one = TRUE # help with numerical issues
-#      ))
-#
 # #check convergence
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
 
-case_sims <- calculate(test_fit$greta_arrays$expected_cases_obs,
-                       values = test_fit$draws,
+case_sims <- calculate(combined_model_objects$expected_cases_obs,
+                       values = fit$draws,
                        nsim = 1000)
 
 
 # case_sims_summary <- apply(case_sims[[1]], 2:3, FUN = "mean")
 
 #check output
-source("R/plot_posterior_timeseries_with_data.R")
 plot_posterior_timeseries_with_data(simulations = case_sims[[1]],
-                                    data_mat = test_data$notification_matrix)
+                                    data_mat = PCR_matrix)
 
-# infections_sims <- calculate(infections[(3+1):(3+n_days),],
-#                        values = draws,
-#                        nsim = 1000)
+infections_sims <- calculate(combined_model_objects$infections_timeseries,
+                             values = fit$draws,
+                             nsim = 1000)
 #
 # plot_posterior_timeseries_with_data(simulations = infections_sims$infections,
 #                                     data_mat = obs_N)
-#
-# #reset test condition
-# rm(gp,
-#    infections,
-#    expected_cases,
-#    m,
-#    obs_N,
-#    obs_pcr_detections_mat,
-#    test_init,
-#    size,
-#    prob,
-#    local_cases)
+
 
 # # car_sims <- calculate(car,
 # #                        values = draws,
@@ -166,3 +189,5 @@ gp_lengthscale_sim <- apply(gp_lengthscale_sim[[1]], 2:3, FUN = "mean")
 #                              nsim = 100)
 #
 # gp_variance_sim <- apply(gp_variance_sim[[1]], 2:3, FUN = "mean")
+
+
