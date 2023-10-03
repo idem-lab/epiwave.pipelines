@@ -1,5 +1,6 @@
 # check impact of on or multiple jurisdictions
-estimate_delays <- function(linelist) {
+estimate_delays <- function(linelist,
+                            jurisdictions) {
 
     # symptom_onset_date_col_name <- rlang::enquo(symptom_onset_date_col_name)
     # default state_specific delays, fall back on national
@@ -51,7 +52,7 @@ estimate_delays <- function(linelist) {
         max(delay_data$date_to),
         by = 1)
 
-    all_states <- unique(delay_data$state)
+    all_states <- jurisdictions#unique(delay_data$state)
 
     date_state <- tidyr::expand_grid(
         date = all_dates,
