@@ -14,12 +14,14 @@
 #' @export
 #'
 #' @examples
-delay_constructor <- function(delay_range = c(-3, 28),
-                              ecdf1,
-                              ecdf2 = NULL,
-                              output = c("probability", "cumulative density"),
-                              stefun_output = FALSE) {
+construct_delays <- function(ecdf1,
+                             ecdf2 = NULL,
+                             delay_range = c(-3, 28),
+                             output = c("probability", "cumulative density"),
+                             stefun_output = FALSE) {
 
+
+    ecdf1 <- ecdf1[[1]]
 
     # days of delay
     days <- seq(delay_range[1], delay_range[2])
@@ -49,7 +51,7 @@ delay_constructor <- function(delay_range = c(-3, 28),
         p[days < 0] <- 0
         p <- p / sum(p)
 
-        }
+    }
 
     if (output == "probability") {
         if (stefun_output) {
