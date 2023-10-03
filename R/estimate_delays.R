@@ -159,10 +159,18 @@ estimate_delays <- function(linelist,
             dplyr::select(date, state, ecdf, weight, use_national)
     }
 
-    state_ecdfs
 
-    # outputs list of timevarying delays (either
+    # state_ecdfs is list of timevarying delays (either
     # functions or vector of probabilities)
+
+    delay_dist <- state_ecdfs |>
+        tidyr::pivot_wider(id_cols = date,
+                           names_from = state,
+                           values_from = ecdf)
+    delay_dist_mat <- as.matrix(delay_dist[-1])
+    row.names(delay_dist_mat) <- as.character(delay_dist$date)
+
+    delay_dist_mat
 }
 
 count_in_window <- function(target_date, states,
