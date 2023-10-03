@@ -4,3 +4,7 @@
 .httr-oauth
 .DS_Store
 _targets/
+data-raw/
+dep_R/
+questions
+_targets.R

@@ -36,7 +36,7 @@ list(
         hospitalisation_matrix,
         # notification_matrix + 10 * .5
         readRDS('tests/sim_hospital_data.rds')
-    ), # connect this to the others
+    ),
     tar_target(
         jurisdictions,
         colnames(notification_matrix)
@@ -67,7 +67,7 @@ list(
                  hospitalisation_delay_distribution))
     ),
     tar_target(
-        timevarying_CAR, # link with CAR matrix in BDSS repo
+        timevarying_CAR, # link with CAR matrix in BDSS repo - can't
         prepare_ascertainment_input(
             assume_constant_ascertainment = TRUE,
             constant_ascertainment_fraction = 1)
@@ -87,20 +87,20 @@ list(
     tar_target(
         notification_model_objects,
         create_negbin_model_notification_data(
-            infection_model_objects,
-            timeseries_data = notification_matrix,
+            infections_timeseries = infection_model_objects$infections_timeseries,
             timevarying_delay_distribution = notification_delay_distribution,
             timevarying_proporion = timevarying_CAR,
+            timeseries_data = notification_matrix,
             n_days_infection,
             n_jurisdictions)
     ),
     tar_target(
         hospitalisation_model_objects,
-        create_poisson_model_hospitalisation_data(
-            infection_model_objects,
-            timeseries_data = hospitalisation_matrix,
+        create_poisson_model_hospitalisation_data( # will this be same function?
+            infections_timeseries = infection_model_objects$infections_timeseries,
             timevarying_delay_distribution = hospitalisation_delay_distribution,
             timevarying_proporion = timevarying_proportion_hospitalised,
+            timeseries_data = hospitalisation_matrix,
             n_days_infection,
             n_jurisdictions)
     ),
