@@ -1,18 +1,12 @@
-# Created by use_targets().
-# Follow the comments below to fill in this target script.
-# Then follow the manual to check and run the pipeline:
-#   https://books.ropensci.org/targets/walkthrough.html#inspect-the-pipeline # nolint
-
 # Load packages required to define the pipeline:
 library(targets)
-# library(tarchetypes) # Load other packages as needed. # nolint
-# source('scripts/data_preprocessing.R')
+library(tarchetypes)
+
 # Set target options:
 # packages that your targets need to run
 tar_option_set(
     packages = c('greta', 'greta.gp', 'tensorflow', 'greta.dynamics'),
     format = "rds" # default storage format
-    # Set other options as needed.
 )
 
 module <- greta::.internals$utils$misc$module
@@ -21,25 +15,32 @@ module <- greta::.internals$utils$misc$module
 # options(clustermq.scheduler = "multicore")
 
 # tar_make_future() configuration (okay to leave alone):
-future::plan(future.callr::callr)
+# future::plan(future.callr::callr)
 
 # Run the R scripts in the R/ folder with your custom functions:
 tar_source()
 
+values <- tibble::tibble(test = c('PCR', 'RAT'))
+
 # Replace the target list below with your own:
-list(
+upstream_targets <- list(
     tar_target(
-        notification_matrix,
-        readRDS('tests/sim_case_data.RData')
+        linelist_file,
+        'data-raw/linelist_processed_2023_09_21.rds',
+        format = 'rds'
     ),
     tar_target(
-        hospitalisation_matrix,
-        # notification_matrix + 10 * .5
-        readRDS('tests/sim_hospital_data.rds')
+        linelist,
+        readRDS(linelist_file)
+    ),
+    tar_target(
+        local_summary,
+        summarise_linelist(linelist,
+                           import_status_option = 'local')
     ),
     tar_target(
         jurisdictions,
-        colnames(notification_matrix)
+        unique(linelist$state)
     ),
     tar_target(
         n_jurisdictions,
@@ -50,33 +51,63 @@ list(
         make_incubation_period_cdf(strain = "Omicron")
     ),
     tar_target(
-        notification_delay_distribution,
-        create_timevarying_delay_distribution(
-            notification_matrix,
-            incubation_period_distribution)
+        nishiura_samples,
+        readr::read_csv(
+            file = "data/nishiura_samples.csv",
+            col_types = readr::cols(param1 = readr::col_double(),
+                                    param2 = readr::col_double()))
     ),
-    # creating delay data: see "rolling_delays.R" in old reff code
     tar_target(
-        hospitalisation_delay_distribution,
-        readRDS('tests/hospitalisation_delay_distribution.rds')
+        generation_interval_distribution,
+        make_generation_interval_cdf(
+            nishiura_samples)
+    )
+)
+mapped <- tar_map(
+    unlist = FALSE, # Return a nested list from tar_map()
+    values = values,
+    tar_target(
+        summary_matrix,
+        pivot_datesum_to_wide_matrix(local_summary, test)
+    ),
+    tar_target(
+        delay_dist_mat,
+        estimate_delays(
+            linelist[linelist$test_type == test,],
+            jurisdictions)
+    ),
+    tar_target(
+        notification_delay_distribution,
+        apply(delay_dist_mat,
+              c(1,2), construct_delays,
+              ecdf2 = incubation_period_distribution,
+              output = "probability",
+              stefun_output = TRUE)
+    ),
+    tar_target(
+        notification_model_objects,
+        create_model_notification_data(
+            infections_timeseries = infection_model_objects$infections_timeseries,
+            timevarying_delay_dist = notification_delay_distribution,
+            timevarying_proportion = timevarying_CAR,
+            timeseries_data = summary_matrix)
+    )
+)
+downstream_targets <- list(
+    tar_combine(
+        infection_days,
+        mapped[['notification_delay_distribution']],
+        command = calculate_days_infection(!!!.x)
     ),
     tar_target(
         n_days_infection,
-        calculate_n_days_infection(
-            list(notification_delay_distribution,
-                 hospitalisation_delay_distribution))
+        length(infection_days)
     ),
     tar_target(
-        timevarying_CAR, # link with CAR matrix in BDSS repo - can't
-        prepare_ascertainment_input(
-            assume_constant_ascertainment = TRUE,
-            constant_ascertainment_fraction = 1)
-    ),
-    tar_target(
-        timevarying_proportion_hospitalised,
-        prepare_ascertainment_input(
-            assume_constant_ascertainment = TRUE,
-            constant_ascertainment_fraction = 1)
+        timevarying_CAR,
+        matrix(0.75, nrow = n_days_infection,
+               ncol = n_jurisdictions,
+               dimnames = list(infection_days, jurisdictions))
     ),
     tar_target(
         infection_model_objects,
@@ -85,38 +116,24 @@ list(
             n_days_infection)
     ),
     tar_target(
-        notification_model_objects,
-        create_negbin_model_notification_data(
+        reff_model_objects,
+        estimate_reff(
             infections_timeseries = infection_model_objects$infections_timeseries,
-            timevarying_delay_distribution = notification_delay_distribution,
-            timevarying_proporion = timevarying_CAR,
-            timeseries_data = notification_matrix,
-            n_days_infection,
-            n_jurisdictions)
+            generation_interval_mass_fxns = generation_interval_distribution)
     ),
-    tar_target(
-        hospitalisation_model_objects,
-        create_poisson_model_hospitalisation_data( # will this be same function?
-            infections_timeseries = infection_model_objects$infections_timeseries,
-            timevarying_delay_distribution = hospitalisation_delay_distribution,
-            timevarying_proporion = timevarying_proportion_hospitalised,
-            timeseries_data = hospitalisation_matrix,
-            n_days_infection,
-            n_jurisdictions)
-    ),
-    tar_target(
+    tar_combine(
         combined_model_objects,
-        c(infection_model_objects,
-          notification_model_objects,
-          hospitalisation_model_objects)
+        mapped[['notification_model_objects']],
+        command = c(!!!.x, infection_model_objects, reff_model_objects)
     ),
     tar_target(
         fit,
         fit_model(combined_model_objects,
                   n_chains = 4,
-                  max_convergence_tries = 2,
+                  max_convergence_tries = 1,
                   warmup = 500,
                   init_n_samples = 1000,
-                  iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
+                  iterations_per_step = 1000)
     )
 )
+list(upstream_targets, mapped, downstream_targets)
