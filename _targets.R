@@ -91,6 +91,12 @@ mapped <- tar_map(
             timevarying_delay_dist = notification_delay_distribution,
             timevarying_proportion = timevarying_CAR,
             timeseries_data = summary_matrix)
+    ),
+    tar_target(
+        infection_completion_prob_mat,
+        create_infection_compl_mat(
+            notification_model_objects$convolution_matrices,
+            jurisdictions)
     )
 )
 downstream_targets <- list(
