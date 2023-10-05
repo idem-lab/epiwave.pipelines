@@ -75,7 +75,7 @@ This workflow has separate components for PCR and RAT data, and estimates separa
 
 
 ### Resources
-For more on working with branches, see [here](https://www.freecodecamp.org/news/how-to-work-with-branches-in-git/)
-For more on forks and working with upstreams, see [here](https://www.atlassian.com/git/tutorials/git-forks-and-upstreams)
-For more on merging and rebasing, see [here](https://www.atlassian.com/git/tutorials/merging-vs-rebasing)
+* For more on working with branches, see [here](https://www.freecodecamp.org/news/how-to-work-with-branches-in-git/).
+* For more on forks and working with upstreams, see [here](https://www.atlassian.com/git/tutorials/git-forks-and-upstreams).
+* For more on merging and rebasing, see [here](https://www.atlassian.com/git/tutorials/merging-vs-rebasing).
 
