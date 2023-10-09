@@ -101,9 +101,13 @@ mapped <- tar_map(
 )
 downstream_targets <- list(
     tar_combine(
-        infection_days,
+        delay_list,
         mapped[['notification_delay_distribution']],
-        command = calculate_days_infection(!!!.x)
+        command = list(!!!.x)
+    ),
+    tar_target(
+        infection_days,
+        calculate_days_infection(delay_list)
     ),
     tar_target(
         n_days_infection,
