@@ -1,4 +1,4 @@
-Package: convGPreff
+Package: GPreff
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
@@ -9,10 +9,11 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-URL: https://github.com/AugustHao/convGPreff
-BugReports: https://github.com/AugustHao/convGPreff/issues
+URL: https://github.com/infectious-disease-ecology-modelling/GPreff
+BugReports: https://github.com/infectious-disease-ecology-modelling/GPreff/issues
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
     greta.gp
+    greta.dynamics (install_github("greta-dev/greta.dynamics@iterate_dynamic_function"))
