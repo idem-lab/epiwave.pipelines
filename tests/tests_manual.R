@@ -37,27 +37,29 @@ incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 
 # testing new delay function
 # make this separate for pcr and rat
-PCR_delay_dist_mat <- estimate_delays(
-    linelist[linelist$test_type == 'PCR',],
-    jurisdictions)
+# delay_dist_mat_PCR <- estimate_delays(
+#     linelist[linelist$test_type == 'PCR',],
+#     jurisdictions)
+targets::tar_load(delay_dist_mat_PCR)
 
-RAT_delay_dist_mat <- estimate_delays(
-    linelist[linelist$test_type == 'RAT',],
-    jurisdictions)
+# delay_dist_mat_RAT <- estimate_delays(
+#     linelist[linelist$test_type == 'RAT',],
+#     jurisdictions)
+targets::tar_load(delay_dist_mat_RAT)
 
 # apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
 PCR_notification_delay_distribution <- apply(
-    PCR_delay_dist_mat,
+    delay_dist_mat_PCR,
     c(1,2), construct_delays,
     ecdf2 = incubation_period_distribution,
     output = "probability",
     stefun_output = TRUE)
 
 RAT_notification_delay_distribution <- apply(
-    RAT_delay_dist_mat,
+    delay_dist_mat_RAT,
     c(1,2), construct_delays,
     ecdf2 = incubation_period_distribution,
     output = "probability",
@@ -68,15 +70,12 @@ delay_list <- list(PCR_notification_delay_distribution,
 infection_days <- calculate_days_infection(delay_list)
 n_days_infection <- length(infection_days)
 
-PCR_timevarying_CAR <- matrix(0.75, nrow = n_days_infection,
-                              ncol = n_jurisdictions,
-                              dimnames = list(infection_days, jurisdictions))
-RAT_timevarying_CAR <- matrix(0.75, nrow = n_days_infection,
-                              ncol = n_jurisdictions,
-                              dimnames = list(infection_days, jurisdictions))
-# prepare_ascertainment_input(
-# assume_constant_ascertainment = TRUE,
-# constant_ascertainment_fraction = 1)
+timevarying_CAR <- prepare_ascertainment_input(
+    infection_days, jurisdictions,
+    ascertainment_estimate = get_latest_survey_data_file())
+# timevarying_CAR <- prepare_ascertainment_input(
+#     infection_days, jurisdictions,
+#     assume_constant_ascertainment = 0.75)
 
 infection_model_objects <- create_infection_timeseries(
     n_jurisdictions,
