@@ -84,13 +84,13 @@ infection_model_objects <- create_infection_timeseries(
 PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     timevarying_delay_dist = PCR_notification_delay_distribution,
-    timevarying_proportion = PCR_timevarying_CAR,
+    timevarying_proportion = timevarying_CAR,
     timeseries_data = PCR_matrix)
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     timevarying_delay_dist = RAT_notification_delay_distribution,
-    timevarying_proportion = RAT_timevarying_CAR,
+    timevarying_proportion = timevarying_CAR,
     timeseries_data = RAT_matrix)
 
 # infection completion probability matrices
