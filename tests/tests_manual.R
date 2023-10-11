@@ -42,6 +42,8 @@ incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 #     jurisdictions)
 targets::tar_load(delay_dist_mat_PCR)
 
+delay_dist_mat_PCR <- readRDS("data-raw/delay_dist_mat_PCR.rds")
+delay_dist_mat_RAT <- readRDS("data-raw/delay_dist_mat_RAT.rds")
 # delay_dist_mat_RAT <- estimate_delays(
 #     linelist[linelist$test_type == 'RAT',],
 #     jurisdictions)
@@ -70,9 +72,24 @@ delay_list <- list(PCR_notification_delay_distribution,
 infection_days <- calculate_days_infection(delay_list)
 n_days_infection <- length(infection_days)
 
-timevarying_CAR <- prepare_ascertainment_input(
+#timevarying_CAR <- prepare_ascertainment_input(
+ #   infection_days, jurisdictions,
+  #  ascertainment_estimate = get_latest_survey_data_file())
+
+timevarying_CAR_PCR <- prepare_ascertainment_input(
     infection_days, jurisdictions,
-    ascertainment_estimate = get_latest_survey_data_file())
+    ascertainment_estimate =
+        "outputs/at_least_one_sym_states_central_smoothed_PCR_only_2023-09-28.csv",
+    test_type = "PCR")
+
+timevarying_CAR_RAT <- prepare_ascertainment_input(
+    infection_days, jurisdictions,
+    ascertainment_estimate =
+        "outputs/at_least_one_sym_states_central_smoothed_RAT_only_2023-09-28.csv",
+    test_type = "RAT",
+    rat_reporting = "outputs/report_positive_rat_state_aggregate4weeks_2023-09-28.csv")
+
+
 # timevarying_CAR <- prepare_ascertainment_input(
 #     infection_days, jurisdictions,
 #     assume_constant_ascertainment = 0.75)
