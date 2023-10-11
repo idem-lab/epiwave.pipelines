@@ -42,30 +42,37 @@ incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 #     jurisdictions)
 targets::tar_load(delay_dist_mat_PCR)
 
-delay_dist_mat_PCR <- readRDS("data-raw/delay_dist_mat_PCR.rds")
-delay_dist_mat_RAT <- readRDS("data-raw/delay_dist_mat_RAT.rds")
+ECDF_delay_constant_PCR <- readRDS("data/ECDF_delay_constant_PCR.rds")
+ECDF_delay_constant_RAT <- readRDS("data/ECDF_delay_constant_RAT.rds")
 # delay_dist_mat_RAT <- estimate_delays(
 #     linelist[linelist$test_type == 'RAT',],
 #     jurisdictions)
-targets::tar_load(delay_dist_mat_RAT)
+#targets::tar_load(delay_dist_mat_RAT)
 
 # apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
-PCR_notification_delay_distribution <- apply(
-    delay_dist_mat_PCR,
-    c(1,2), construct_delays,
-    ecdf2 = incubation_period_distribution,
-    output = "probability",
-    stefun_output = TRUE)
 
-RAT_notification_delay_distribution <- apply(
-    delay_dist_mat_RAT,
-    c(1,2), construct_delays,
-    ecdf2 = incubation_period_distribution,
-    output = "probability",
-    stefun_output = TRUE)
+#constant delay distribution
+PCR_notification_delay_distribution <- construct_delays(incubation_period_distribution, ECDF_delay_PCR, output = "probability")
+
+RAT_notification_delay_distribution <- construct_delays(incubation_period_distribution, ECDF_delay_RAT, output = "probability")
+
+#time-varying delay distribution
+#PCR_notification_delay_distribution <- apply(
+ #   delay_dist_mat_PCR,
+  #  c(1,2), construct_delays,
+   # ecdf2 = incubation_period_distribution,
+    #output = "probability",
+    #stefun_output = TRUE)
+
+#RAT_notification_delay_distribution <- apply(
+ #   delay_dist_mat_RAT,
+  #  c(1,2), construct_delays,
+   # ecdf2 = incubation_period_distribution,
+    #output = "probability",
+    #stefun_output = TRUE)
 
 delay_list <- list(PCR_notification_delay_distribution,
                    RAT_notification_delay_distribution)
