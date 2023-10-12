@@ -11,14 +11,13 @@ module <- greta::.internals$utils$misc$module
 
 linelist_file <- "data-raw/linelist_processed_2023_09_21.rds"
 linelist <- readRDS(linelist_file)
-# order by date?
 
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
+PCR_matrix <- PCR_matrix[501:1000,]
 RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
 
-# notification_matrix <- readRDS("tests/sim_case_data.RData")
 ## ensure all have all jurisdictions even if some test types only have
 jurisdictions <- unique(linelist$state)
 
@@ -40,19 +39,31 @@ incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 # delay_dist_mat_PCR <- estimate_delays(
 #     linelist[linelist$test_type == 'PCR',],
 #     jurisdictions)
-targets::tar_load(delay_dist_mat_PCR)
-
-delay_dist_mat_PCR <- readRDS("data-raw/delay_dist_mat_PCR.rds")
-delay_dist_mat_RAT <- readRDS("data-raw/delay_dist_mat_RAT.rds")
+# targets::tar_load(delay_dist_mat_PCR)
 # delay_dist_mat_RAT <- estimate_delays(
 #     linelist[linelist$test_type == 'RAT',],
 #     jurisdictions)
-targets::tar_load(delay_dist_mat_RAT)
+#targets::tar_load(delay_dist_mat_RAT)
+
+ECDF_delay_constant_PCR <- readRDS("data/ECDF_delay_constant_PCR.rds")
+delay_dist_mat_PCR <- matrix(list(ECDF_delay_constant_PCR),
+                             nrow = nrow(PCR_matrix),
+                             ncol = n_jurisdictions,
+                             dimnames = list(rownames(PCR_matrix),
+                                             jurisdictions))
+ECDF_delay_constant_RAT <- readRDS("data/ECDF_delay_constant_RAT.rds")
+delay_dist_mat_RAT <- matrix(list(ECDF_delay_constant_RAT),
+                             nrow = nrow(RAT_matrix),
+                             ncol = n_jurisdictions,
+                             dimnames = list(rownames(RAT_matrix),
+                                             jurisdictions))
 
 # apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
+
+# delay distribution
 PCR_notification_delay_distribution <- apply(
     delay_dist_mat_PCR,
     c(1,2), construct_delays,
@@ -86,13 +97,7 @@ timevarying_CAR_RAT <- prepare_ascertainment_input(
     infection_days, jurisdictions,
     ascertainment_estimate =
         "outputs/at_least_one_sym_states_central_smoothed_RAT_only_2023-09-28.csv",
-    test_type = "RAT",
-    rat_reporting = "outputs/report_positive_rat_state_aggregate4weeks_2023-09-28.csv")
-
-
-# timevarying_CAR <- prepare_ascertainment_input(
-#     infection_days, jurisdictions,
-#     assume_constant_ascertainment = 0.75)
+    test_type = "RAT")
 
 infection_model_objects <- create_infection_timeseries(
     n_jurisdictions,
@@ -101,27 +106,17 @@ infection_model_objects <- create_infection_timeseries(
 PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     timevarying_delay_dist = PCR_notification_delay_distribution,
-    timevarying_proportion = timevarying_CAR,
+    timevarying_proportion = timevarying_CAR_PCR,
     timeseries_data = PCR_matrix)
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     timevarying_delay_dist = RAT_notification_delay_distribution,
-    timevarying_proportion = timevarying_CAR,
+    timevarying_proportion = timevarying_CAR_RAT,
     timeseries_data = RAT_matrix)
 
-# infection completion probability matrices
-PCR_infection_completion_prob_mat <- create_infection_compl_mat(
-    PCR_notification_model_objects$convolution_matrices,
-    jurisdictions)
-
-RAT_infection_completion_prob_mat <- create_infection_compl_mat(
-    RAT_notification_model_objects$convolution_matrices,
-    jurisdictions)
-
-
-# priors for the parameters of the lognormal distribution over the serial interval from Nishiura et
-# al., as stored in the EpiNow source code
+# priors for the parameters of the lognormal distribution over the serial
+#interval from Nishiura et al., as stored in the EpiNow source code
 nishiura_samples <- readr::read_csv(
     file = "data/nishiura_samples.csv",
     col_types = readr::cols(param1 = readr::col_double(),
@@ -150,7 +145,14 @@ fit <- fit_model(combined_model_objects,
 
 ###=== IN DEV
 
+# infection completion probability matrices
+PCR_infection_completion_prob_mat <- create_infection_compl_mat(
+    PCR_notification_model_objects$convolution_matrices,
+    jurisdictions)
 
+RAT_infection_completion_prob_mat <- create_infection_compl_mat(
+    RAT_notification_model_objects$convolution_matrices,
+    jurisdictions)
 
 # #check convergence
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]

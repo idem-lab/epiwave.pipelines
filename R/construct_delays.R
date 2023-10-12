@@ -20,8 +20,8 @@ construct_delays <- function(ecdf1,
                              output = c("probability", "cumulative density"),
                              stefun_output = FALSE) {
 
-
-    ecdf1 <- ecdf1[[1]]
+if(is.list(ecdf1)) {
+    ecdf1 <- ecdf1[[1]] }
 
     # days of delay
     days <- seq(delay_range[1], delay_range[2])
