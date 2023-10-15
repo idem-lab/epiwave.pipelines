@@ -3,8 +3,8 @@ create_infection_timeseries <- function(n_jurisdictions,
                                         effect_type = "growth_rate") {
 
     # kernel hyperparams
-    gp_lengthscale <- greta::lognormal(0, 1) #inverse_gamma(187/9,1157/18)
-    gp_variance <- greta::normal(0, 4, truncation = c(0, Inf))
+    gp_lengthscale <- greta::lognormal(0, 3) #inverse_gamma(187/9,1157/18)
+    gp_variance <- greta::normal(0, 1, truncation = c(0, Inf))
     gp_kernel <- greta.gp::mat52(gp_lengthscale, gp_variance)
 
     #define gp
