@@ -45,17 +45,27 @@ if(is.list(ecdf1)) {
             dplyr::group_by(x) |>
             dplyr::summarise(p = sum(p1(z + 1) * p2(x - z + 1))) |>
             dplyr::pull(p)
-
-        #remove negative delay prob since notification cannot precede infection assuming that some
-        #preventive measure has taken place once the "would-be" infectee is notified
-        p[days < 0] <- 0
-        p <- p / sum(p)
-
     }
+
+    #remove negative delay prob since notification cannot precede infection assuming that some
+    #preventive measure has taken place once the "would-be" infectee is notified
+    p[days < 0] <- 0
+    #remove extremely long but unlikely delays, ususally a result of
+    #parametric specification of the input cdf --- need to check if this is
+    #right
+    p[days > delay_range[2]] <- 0
+    #normalise remaining probs
+    p <- p / sum(p)
 
     if (output == "probability") {
         if (stefun_output) {
-            return(approxfun(days,p, rule = 2))
+            return(approxfun(days,p,
+                             rule = 2,
+                             method = "constant",
+                             yleft = 0,
+                             yright = 0,
+                             f = 0)
+                   )
         } else {
             return(tibble::tibble(days,p))
         }

@@ -125,6 +125,10 @@ nishiura_samples <- readr::read_csv(
 generation_interval_distribution <- make_generation_interval_cdf(
     nishiura_samples)
 
+generation_interval_distribution <- construct_delays(generation_interval_distribution,
+                                                     output = "probability",
+                                                     stefun_output = TRUE)
+
 reff_model_objects <- estimate_reff(
     infections_timeseries = infection_model_objects$infections_timeseries,
     generation_interval_mass_fxns = generation_interval_distribution)
