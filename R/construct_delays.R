@@ -55,7 +55,13 @@ if(is.list(ecdf1)) {
 
     if (output == "probability") {
         if (stefun_output) {
-            return(approxfun(days,p, rule = 2))
+            return(approxfun(days,p,
+                             rule = 2,
+                             method = "constant",
+                             yleft = 0,
+                             yright = 0,
+                             f = 0)
+                   )
         } else {
             return(tibble::tibble(days,p))
         }
