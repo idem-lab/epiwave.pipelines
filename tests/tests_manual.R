@@ -114,7 +114,7 @@ PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
     observed_infection_dates = PCR_infection_days,
-    timevarying_delay_dist = PCR_notification_delay_distribution_ext,
+    timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
     timeseries_data = PCR_matrix)
 
@@ -122,7 +122,7 @@ RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
     observed_infection_dates = RAT_infection_days,
-    timevarying_delay_dist = RAT_notification_delay_distribution_ext,
+    timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
     timeseries_data = RAT_matrix)
 
@@ -133,12 +133,8 @@ nishiura_samples <- readr::read_csv(
     col_types = readr::cols(param1 = readr::col_double(),
                             param2 = readr::col_double()))
 
-generation_interval_distribution <- make_generation_interval_cdf(
+generation_interval_distribution <- make_generation_interval_density(
     nishiura_samples)
-
-generation_interval_distribution <- construct_delays(generation_interval_distribution,
-                                                     output = "probability",
-                                                     stefun_output = TRUE)
 
 reff_model_objects <- estimate_reff(
     infections_timeseries = infection_model_objects$infections_timeseries,
