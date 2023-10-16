@@ -55,19 +55,19 @@ create_model_notification_data <- function(
         #realistically you only care about forecast if using case data, thus
         #this bit is conditional on neg binom likelihood
         #get idx for forecast days
-        forecast_data_idx <- which(observed_infection_dates > max(as.Date(rownames(timeseries_data)))
-        )
-        #proposal for a forecast bit
-        size_forecast <- size[forecast_data_idx,]
-        prob_forecast <- prob[forecast_data_idx,]
-        forecast_cases <- greta::negative_binomial(
-            size_forecast,
-            prob_forecast)
+        # forecast_data_idx <- which(observed_infection_dates > max(as.Date(rownames(timeseries_data)))
+        # )
+        # #proposal for a forecast bit
+        # size_forecast <- size[forecast_data_idx,]
+        # prob_forecast <- prob[forecast_data_idx,]
+        # forecast_cases <- greta::negative_binomial(
+        #     size_forecast,
+        #     prob_forecast)
         #array-ify the data
         timeseries_data_array <- greta::as_data(timeseries_data)
         #stick in the forecast bit
-        timeseries_data_array_with_forecast <- rbind(timeseries_data_array,
-                                                     forecast_cases)
+        # timeseries_data_array_with_forecast <- rbind(timeseries_data_array,
+        #                                              forecast_cases)
 
         #I guess you could make a version of infection time series with forecast
         #bit too but can't imagine that being useful at all
@@ -81,8 +81,8 @@ create_model_notification_data <- function(
         infection_match_data,
         size,
         prob,
-        timeseries_data_array,
-        timeseries_data_array_with_forecast
+        timeseries_data_array#,
+        #timeseries_data_array_with_forecast
     )
     # infection_model_objects[[length(infection_model_objects) + 1]] <- module(size)
     # infection_model_objects
