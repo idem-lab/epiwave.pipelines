@@ -15,9 +15,9 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
-PCR_matrix <- PCR_matrix[501:1000,]
+PCR_matrix <- PCR_matrix[501:600,]
 RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
-
+RAT_matrix <- RAT_matrix[201:300,]
 ## ensure all have all jurisdictions even if some test types only have
 jurisdictions <- unique(linelist$state)
 
@@ -71,6 +71,11 @@ PCR_notification_delay_distribution <- apply(
     output = "probability",
     stefun_output = TRUE)
 
+PCR_infection_days <- calculate_days_infection(PCR_notification_delay_distribution)
+
+PCR_notification_delay_distribution_ext <- extend_delay_df(PCR_notification_delay_distribution)
+rownames(PCR_notification_delay_distribution_ext) <- PCR_infection_days
+
 RAT_notification_delay_distribution <- apply(
     delay_dist_mat_RAT,
     c(1,2), construct_delays,
@@ -78,26 +83,32 @@ RAT_notification_delay_distribution <- apply(
     output = "probability",
     stefun_output = TRUE)
 
-delay_list <- list(PCR_notification_delay_distribution,
-                   RAT_notification_delay_distribution)
-infection_days <- calculate_days_infection(delay_list)
-n_days_infection <- length(infection_days)
+RAT_infection_days <- calculate_days_infection(RAT_notification_delay_distribution)
 
-#timevarying_CAR <- prepare_ascertainment_input(
- #   infection_days, jurisdictions,
-  #  ascertainment_estimate = get_latest_survey_data_file())
+RAT_notification_delay_distribution_ext <- extend_delay_df(RAT_notification_delay_distribution)
+rownames(RAT_notification_delay_distribution_ext) <- RAT_infection_days
+
 
 timevarying_CAR_PCR <- prepare_ascertainment_input(
-    infection_days, jurisdictions,
-    ascertainment_estimate =
-        "outputs/at_least_one_sym_states_central_smoothed_PCR_only_2023-09-28.csv",
+  PCR_infection_days, jurisdictions,constant_ascertainment = 1,
     test_type = "PCR")
 
 timevarying_CAR_RAT <- prepare_ascertainment_input(
-    infection_days, jurisdictions,
-    ascertainment_estimate =
-        "outputs/at_least_one_sym_states_central_smoothed_RAT_only_2023-09-28.csv",
+  RAT_infection_days, jurisdictions,
+  constant_ascertainment =
+        1,
     test_type = "RAT")
+
+############# above objects are all created based on input data, and does not
+############# require the creation of an infection timeseries
+
+days_infection <- seq.Date(min(PCR_infection_days,
+                               RAT_infection_days),
+                           max(PCR_infection_days,
+                               RAT_infection_days),
+                           by = "day")
+
+n_days_infection <- length(days_infection)
 
 infection_model_objects <- create_infection_timeseries(
     n_jurisdictions,
@@ -105,13 +116,17 @@ infection_model_objects <- create_infection_timeseries(
 
 PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
-    timevarying_delay_dist = PCR_notification_delay_distribution,
+    full_infection_dates = days_infection,
+    observed_infection_dates = PCR_infection_days,
+    timevarying_delay_dist = PCR_notification_delay_distribution_ext,
     timevarying_proportion = timevarying_CAR_PCR,
     timeseries_data = PCR_matrix)
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
-    timevarying_delay_dist = RAT_notification_delay_distribution,
+    full_infection_dates = days_infection,
+    observed_infection_dates = RAT_infection_days,
+    timevarying_delay_dist = RAT_notification_delay_distribution_ext,
     timevarying_proportion = timevarying_CAR_RAT,
     timeseries_data = RAT_matrix)
 
@@ -139,7 +154,7 @@ combined_model_objects <- c(infection_model_objects,
                             reff_model_objects)
 
 fit <- fit_model(combined_model_objects,
-                 n_chains = 4,
+                 n_chains = 2,
                  max_convergence_tries = 1,
                  warmup = 500,
                  init_n_samples = 1000,
