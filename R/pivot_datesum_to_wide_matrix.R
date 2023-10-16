@@ -1,5 +1,7 @@
 pivot_datesum_to_wide_matrix <- function (local_summary,
-                                          test_type) {
+                                          test_type,
+                                          jurisdictions,
+                                          target_dates) {
 
     subset <- local_summary |>
         tidyr::pivot_wider(id_cols = date_confirmation,
@@ -9,7 +11,7 @@ pivot_datesum_to_wide_matrix <- function (local_summary,
                            values_fill = 0) |>
         data.frame()
 
-    nonzero_dates <- subset[rowSums(subset[,-1]) != 0,]
+    nonzero_dates <- subset[rowSums(subset[, -1]) != 0,]
 
     hh <- data.frame(
         date_confirmation = seq(min(nonzero_dates$date_confirmation),
@@ -23,6 +25,9 @@ pivot_datesum_to_wide_matrix <- function (local_summary,
     row.names(all_dates) <- all_dates$date_confirmation
     mat <- as.matrix(all_dates[, -1])
 
-    return(mat)
+    mat_subset <- mat[rownames(mat) %in% target_dates,]
+    mat_ordered <- mat_subset[, jurisdictions]
+
+    return(mat_ordered)
 }
 
