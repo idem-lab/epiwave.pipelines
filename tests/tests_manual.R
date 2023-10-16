@@ -79,7 +79,7 @@ PCR_notification_delay_distribution <- apply(
 PCR_infection_days <- calculate_days_infection(PCR_notification_delay_distribution)
 
 PCR_notification_delay_distribution_ext <- extend_delay_df(PCR_notification_delay_distribution)
-rownames(PCR_notification_delay_distribution_ext) <- PCR_infection_days
+rownames(PCR_notification_delay_distribution_ext) <- as.character(PCR_infection_days)
 
 RAT_notification_delay_distribution <- apply(
     delay_dist_mat_RAT,
@@ -91,7 +91,7 @@ RAT_notification_delay_distribution <- apply(
 RAT_infection_days <- calculate_days_infection(RAT_notification_delay_distribution)
 
 RAT_notification_delay_distribution_ext <- extend_delay_df(RAT_notification_delay_distribution)
-rownames(RAT_notification_delay_distribution_ext) <- RAT_infection_days
+rownames(RAT_notification_delay_distribution_ext) <- as.character(RAT_infection_days)
 
 
 timevarying_CAR_PCR <- prepare_ascertainment_input(
