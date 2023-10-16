@@ -34,7 +34,7 @@ plot_timeseries_sims <- function(
     dates,
     states,
     base_colour = grey(0.4),
-    start_date = max(dates) - months(1),
+    start_date = max(dates) - lubridate::dmonths(1),
     case_validation_data = NULL,
     case_forecast = FALSE
 ) {
@@ -56,11 +56,11 @@ plot_timeseries_sims <- function(
     }
 
     #calculate mean and CI values for ribbon plot
-    mean <- apply(simulations, 2:3, FUN = "mean")
-    ci_90_lo <- apply(simulations, 2:3, quantile, c(0.05))
-    ci_90_hi <- apply(simulations, 2:3, quantile, c(0.95))
-    ci_50_hi <- apply(simulations, 2:3, quantile, c(0.75))
-    ci_50_lo <- apply(simulations, 2:3, quantile, c(0.25))
+    mean <- apply(simulations, 2:3, FUN = "mean",na.rm = TRUE)
+    ci_90_lo <- apply(simulations, 2:3, quantile, c(0.05),na.rm = TRUE)
+    ci_90_hi <- apply(simulations, 2:3, quantile, c(0.95),na.rm = TRUE)
+    ci_50_hi <- apply(simulations, 2:3, quantile, c(0.75),na.rm = TRUE)
+    ci_50_lo <- apply(simulations, 2:3, quantile, c(0.25),na.rm = TRUE)
 
     #if forecast version of case timeseries is used, the calulated values
     #should already have extra forecasting days, so we simply annotate the
@@ -97,26 +97,26 @@ plot_timeseries_sims <- function(
                       each = length(dates)
     )
 
-    df <- tibble(date = full_dates,
+    df <- tibble::tibble(date = full_dates,
                  label = full_label
     )
 
     df <- cbind(df,vals)
     colnames(df) <- c(colnames(df)[1:2],states)
 
-    df <- df %>%
-        pivot_longer(cols = 3:ncol(df),
+    df <- df |>
+        tidyr::pivot_longer(cols = 3:ncol(df),
                      values_to = "value",
                      names_to = "state")
 
-    df <- df %>%
-        pivot_wider(names_from = label,
+    df <- df |>
+        tidyr::pivot_wider(names_from = label,
                     values_from = value)
 
-    df <- df %>%
-        mutate(type = ifelse(date %in% extra_dates, "forecast","estimate"))
+    df <- df |>
+        dplyr::mutate(type = ifelse(date %in% extra_dates, "forecast","estimate"))
 
-    df <- df %>% filter(date >= start_date)
+    df <- df |> dplyr::filter(date >= start_date)
 
 
     #dynamic date label and breaks
@@ -150,46 +150,46 @@ plot_timeseries_sims <- function(
 
 
     #make the plot
-    p <- ggplot(df) +
+    p <- ggplot2::ggplot(df) +
 
-        aes(date, mean) +
-        xlab(element_blank()) +
-        facet_wrap(~ state, ncol = 2, scales = "free") +
-        scale_x_date(date_breaks = date_breaks,
+        ggplot2::aes(date, mean) +
+        ggplot2::xlab(ggplot2::element_blank()) +
+        ggplot2::facet_wrap(~ state, ncol = 2, scales = "free") +
+        ggplot2::scale_x_date(date_breaks = date_breaks,
                      date_minor_breaks = date_minor_breaks,
                      date_labels = date_labels) +
-        scale_alpha(range = c(0, 0.5)) +
-        scale_y_continuous(name = ylab_name) +
-        geom_ribbon(aes(ymin = ci_90_lo,
+        ggplot2::scale_alpha(range = c(0, 0.5)) +
+        ggplot2::scale_y_continuous(name = ylab_name) +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_90_lo,
                         ymax = ci_90_hi),
                     fill = ribbon_colour,
                     alpha = 0.2) +
-        geom_ribbon(aes(ymin = ci_50_lo,
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_50_lo,
                         ymax = ci_50_hi),
                     fill = ribbon_colour,
                     alpha = 0.5) +
-        geom_line(aes(y = ci_90_lo),
+        ggplot2::geom_line(ggplot2::aes(y = ci_90_lo),
                   colour = base_colour,
                   alpha = 0.8) +
-        geom_line(aes(y = ci_90_hi),
+        ggplot2::geom_line(ggplot2::aes(y = ci_90_hi),
                   colour = base_colour,
                   alpha = 0.8) +
         cowplot::theme_cowplot() +
         cowplot::panel_border(remove = TRUE) +
-        theme(legend.position = "none",
-              strip.background = element_blank(),
-              strip.text = element_text(hjust = 0, face = "bold"),
-              axis.title.y.right = element_text(vjust = 0.5, angle = 90),
-              panel.spacing = unit(1.2, "lines"),
-              axis.text.x = element_text(size = x_text_size,
+        ggplot2::theme(legend.position = "none",
+              strip.background = ggplot2::element_blank(),
+              strip.text = ggplot2::element_text(hjust = 0, face = "bold"),
+              axis.title.y.right = ggplot2::element_text(vjust = 0.5, angle = 90),
+              panel.spacing = ggplot2::unit(1.2, "lines"),
+              axis.text.x = ggplot2::element_text(size = x_text_size,
                                          angle = x_text_angle,
                                          hjust = x_text_hjust,
                                          vjust = x_text_vjust)
         )
     #grey box for projection
     if (case_forecast) {
-        p <- p +   geom_vline(xintercept = projection_at, linetype = "dashed", colour = "grey60") +
-            annotate("rect",
+        p <- p +   ggplot2::geom_vline(xintercept = projection_at, linetype = "dashed", colour = "grey60") +
+            ggplot2::annotate("rect",
                      xmin = projection_at,
                      xmax = max(df$date),
                      ymin = -Inf,
@@ -200,8 +200,8 @@ plot_timeseries_sims <- function(
     #optional date rug for shorter plots
     if (length(unique(df$date)) < 90) {
         p <- p +
-            geom_rug(
-                aes(date),
+            ggplot2::geom_rug(
+                ggplot2::aes(date),
                 sides = "b",
                 alpha = 1,
                 size = 0.5,
@@ -215,9 +215,9 @@ plot_timeseries_sims <- function(
     }
 
     if (!is.null(case_validation_data) & type != 'reff') {
-        p <- p + geom_point(data = case_validation_data %>%
-                                filter(date >= start_date),
-                            aes(x = date, y = count),
+        p <- p + ggplot2::geom_point(data = case_validation_data |>
+                                dplyr::filter(date >= start_date),
+                                ggplot2::aes(x = date, y = count),
                             inherit.aes = TRUE,
                             size = 0.3)
     }
@@ -226,7 +226,7 @@ plot_timeseries_sims <- function(
     #fix reff plot ylim
     if (type == 'reff') {
         ylim <- c(min(df$ci_90_lo), max(df$ci_90_hi))
-        p <- p + coord_cartesian(ylim = ylim)
+        p <- p + ggplot2::coord_cartesian(ylim = ylim)
     }
 
     p
