@@ -191,7 +191,44 @@ plot_timeseries_sims(case_sims[[1]],
                      dates = seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"),
                      states = colnames(PCR_matrix))
 
+infection_sims <- calculate(combined_model_objects$infection_match_data,
+                       values = fit,
+                       nsim = 1000)
 
+plot_timeseries_sims(infection_sims[[1]],
+                     type = "infection",
+                     dates = seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"),
+                     states = colnames(PCR_matrix))
+
+reff_sims <- calculate(combined_model_objects$reff,
+                            values = fit,
+                            nsim = 1000)
+
+plot_timeseries_sims(reff_sims[[1]],
+                     type = "reff",
+                     dates = days_infection,
+                     states = colnames(PCR_matrix))
+
+forecast_param_sims <- calculate(combined_model_objects$prob_forecast,
+                                 combined_model_objects$size_forecast,
+                       values = fit,
+                       nsim = 1000)
+
+forecast_sims <- forecast_param_sims$`combined_model_objects$prob_forecast`
+
+for (i in 1:1000) {
+  for (j in 1:29) {
+    for (n in 1:8) {
+      forecast_sims[i,j,n] <- rnbinom(1,size = forecast_param_sims[[2]][i,j,n],
+                                      prob = forecast_param_sims[[1]][i,j,n])
+    }
+  }
+}
+
+plot_timeseries_sims(forecast_sims,
+                     type = "notification",
+                     dates = PCR_infection_days[which(PCR_infection_days > max(as.Date(rownames(PCR_matrix))))],
+                     states = colnames(PCR_matrix))
 
 calculate(combined_model_objects$gp_lengthscale,
           values = fit,
