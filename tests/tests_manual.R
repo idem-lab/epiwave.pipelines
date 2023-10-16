@@ -161,7 +161,7 @@ combined_model_objects <- c(infection_model_objects,
 fit <- fit_model(combined_model_objects,
                  n_chains = 2,
                  max_convergence_tries = 1,
-                 warmup = 500,
+                 warmup = 400,
                  init_n_samples = 1000,
                  iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
 
@@ -182,54 +182,20 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
 
-case_sims <- calculate(combined_model_objects$expected_cases_obs,
-                       values = fit$draws,
+case_sims <- calculate(combined_model_objects$timeseries_data_array,
+                       values = fit,
                        nsim = 1000)
 
-
-# case_sims_summary <- apply(case_sims[[1]], 2:3, FUN = "mean")
-
-#check output
-plot_posterior_timeseries_with_data(simulations = case_sims[[1]],
-                                    data_mat = PCR_matrix)
-
-infections_sims <- calculate(combined_model_objects$infections_timeseries,
-                             values = fit$draws,
-                             nsim = 1000)
-#
-# plot_posterior_timeseries_with_data(simulations = infections_sims$infections,
-#                                     data_mat = obs_N)
+plot_timeseries_sims(case_sims[[1]],
+                     type = "notification",
+                     dates = seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"),
+                     states = colnames(PCR_matrix))
 
 
-# # car_sims <- calculate(car,
-# #                        values = draws,
-# #                        nsim = 100)
-# gp_sim <- calculate(gp,
-#                     #values = draws,
-#                     nsim = 100)
-#
-# gp_sim <- apply(gp_sim[[1]], 2:3, FUN = "mean")
-#
-# View(gp_sim)
-#
-# infections_sim <- calculate(infections,
-#                             #values = draws,
-#                             nsim = 100)
-#
-# infections_sim <- apply(infections_sim[[1]], 2:3, FUN = "mean")
-#
-# View(infections_sim)
-#
-gp_lengthscale_sim <- calculate(test_fit$greta_arrays$gp_lengthscale,
-                                values = test_fit$draws,
-                                nsim = 100)
 
-gp_lengthscale_sim <- apply(gp_lengthscale_sim[[1]], 2:3, FUN = "mean")
-# #
-# gp_variance_sim <- calculate(gp_variance,
-#                              values = draws,
-#                              nsim = 100)
-#
-# gp_variance_sim <- apply(gp_variance_sim[[1]], 2:3, FUN = "mean")
-
-
+calculate(combined_model_objects$gp_lengthscale,
+          values = fit,
+          nsim = 10)
+calculate(combined_model_objects$gp_variance,
+          values = fit,
+          nsim = 10)
