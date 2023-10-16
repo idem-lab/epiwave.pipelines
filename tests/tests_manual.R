@@ -15,16 +15,20 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-#make target dates for end of RAT dates
-target_dates <- as.character(seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"))
+#make target dates range
+target_dates <- seq.Date(as.Date("2023-05-01"),as.Date("2024-01-01"),by = "day")
 
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
-PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
+PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% as.character(target_dates),]
 RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
-RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
+RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% as.character(target_dates),]
 ## ensure all have all jurisdictions even if some test types only have
-jurisdictions <- unique(linelist$state)
+# state names --- make sure consistent with column ordering
+jurisdictions <- colnames(PCR_matrix)
+
+#make a valid check matrix for switching off RAT dates
+RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
 
 # set state names
 # if (is.null(jurisdiction_names)) {
@@ -125,7 +129,7 @@ PCR_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution_ext,
     timevarying_proportion = timevarying_CAR_PCR,
-    timeseries_data = PCR_matrix)
+    observed_data = PCR_matrix)
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
@@ -133,7 +137,8 @@ RAT_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = RAT_infection_days,
     timevarying_delay_dist = RAT_notification_delay_distribution_ext,
     timevarying_proportion = timevarying_CAR_RAT,
-    timeseries_data = RAT_matrix)
+    observed_data = RAT_matrix,
+    valid_mat = RAT_valid_mat)
 
 # priors for the parameters of the lognormal distribution over the serial
 #interval from Nishiura et al., as stored in the EpiNow source code
