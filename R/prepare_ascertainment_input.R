@@ -11,32 +11,33 @@ prepare_ascertainment_input <- function(
     if (is.null(ascertainment_estimate) &
         is.null(constant_ascertainment)) {
 
-        warning("Warning: not assuming constant ascertainment but no
-                ascertainment estimates provided, ascertainment rate with be
-                fitted with a naive prior")
+        stop("Provide either a constant ascertainment value or ascertainment
+             estimate")
+    }
 
-    } else if (!is.null(ascertainment_estimate) &
-               !is.null(constant_ascertainment)) {
+    if (!is.null(constant_ascertainment)) {
 
-        warning("Warning: ascertainment estimates provided but overriden by
-                assumed constant ascertainment")
+        warning("Warning: using a constant assumed ascertainment value
+                for every time point and jurisdiction!")
 
-    } else if (is.null(ascertainment_estimate) &
-               !is.null(constant_ascertainment)) {
-        warning("using a constant assumed ascertainment value for every time
-                point and jurisdiction!")
         ascertainment_input <- matrix(constant_ascertainment,
                                       nrow = length(dates),
                                       ncol = length(jurisdictions),
                                       dimnames = list(as.character(dates),
                                                       jurisdictions))
 
-    } else if (!is.null(ascertainment_estimate) &
-               is.null(constant_ascertainment)) {
+        if (!is.null(ascertainment_estimate)) {
+
+            warning("Warning: ascertainment estimates provided but overriden by
+                assumed constant ascertainment")
+        }
+    }
+
+    if (!is.null(ascertainment_estimate) &
+        is.null(constant_ascertainment)) {
 
         ascertainment_input <- get_CAR_from_surveys(
             dates, jurisdictions, ascertainment_estimate, test_type)
-
     }
 
     ascertainment_input
