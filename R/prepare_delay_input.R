@@ -1,11 +1,43 @@
+
+prepare_delay_input <- function(
+        dates, jurisdictions,
+        delay_data = NULL,
+        constant_delay = NULL # should be value input if using
+        ) {
+
+    if (is.null(delay_data) & is.null(constant_delay)) {
+        stop("Must specify either delay data or constant delay value")
+    }
+
+    if (!is.null(constant_delay)) {
+        delay_input <- matrix(constant_delay,
+                              nrow = length(dates),
+                              ncol = length(jurisdictions),
+                              dimnames = list(as.character(dates),
+                                              jurisdictions))
+        if (!is.null(delay_data)) {
+            warning("Warning: delay data provided but overriden by constant delay")
+        }
+    }
+
+    if (!is.null(delay_data) & is.null(constant_delay)) {
+        delay_input <- estimate_delays_from_data(
+            delay_data, jurisdictions)
+    }
+
+    delay_input
+}
+
+
+
 # check impact of on or multiple jurisdictions
-estimate_delays <- function(linelist,
-                            jurisdictions) {
+estimate_delays_from_data <- function(linelist,
+                                      jurisdictions) {
 
     # symptom_onset_date_col_name <- rlang::enquo(symptom_onset_date_col_name)
     # default state_specific delays, fall back on national
 
-# date_onset refers to symptom onset > change to date_symptom_onset?
+    # date_onset refers to symptom onset > change to date_symptom_onset?
 
     national_exclusions <- tibble::tibble(
         state = "VIC",
@@ -282,3 +314,4 @@ weight_ecdf <- function(ecdf_1, ecdf_2, weight) {
     rval
 
 }
+
