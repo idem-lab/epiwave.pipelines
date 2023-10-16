@@ -12,7 +12,7 @@ create_infection_timeseries <- function(n_jurisdictions,
         x = seq_len(n_days_infection),
         kernel = gp_kernel,
         n = n_jurisdictions,
-        tol = 1e-4
+        tol = .Machine$double.eps
     )
 
     #compute infections from gp
