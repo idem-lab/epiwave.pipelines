@@ -10,23 +10,25 @@ create_model_notification_data <- function(
     n_days_infection <- nrow(infections_timeseries)
     n_jurisdictions <- ncol(infections_timeseries)
 
-    #get indices for subset of infection days that end up in observed/forecast data
+    # get indices for subset of infection days that end up in observed/forecast data
     obs_infection_idx <- which(full_infection_dates %in% observed_infection_dates)
-    #subset infection timeseries to these indices
+
+    # subset infection timeseries to these indices
     infection_obs <- infections_timeseries[obs_infection_idx,]
     n_days_infection_obs <- length(obs_infection_idx)
 
     convolution_matrices <- lapply(1:n_jurisdictions, function(x)
         get_convolution_matrix(timevarying_delay_dist_ext[, x],
                                n_days_infection_obs))
-    #compute expected cases of the same length
-    #note not all of these dates would have been observed
-    expected_cases <- do.call(cbind,
-                              lapply(
-        1:n_jurisdictions, function(x)
-        {convolution_matrices[[x]] %*% infection_obs[, x] * timevarying_proportion[, x]}
-                                    )
-                            )
+
+    # compute expected cases of the same length
+    # note not all of these dates would have been observed
+    expected_cases <- do.call(
+        cbind,
+        lapply(1:n_jurisdictions, function(x) {
+            convolution_matrices[[x]] %*% infection_obs[, x] *
+                timevarying_proportion[, x]
+        }))
 
     # negative binomial likelihood for number of cases
     sqrt_inv_size <- normal(0, 0.5,
@@ -40,16 +42,18 @@ create_model_notification_data <- function(
     size <- 1 / sqrt(sqrt_inv_size)
     prob <- 1 / (1 + expected_cases / size)
 
-    #observed days in the data itself
+    # observed days in the data itself
     obs_data_idx <- which(observed_infection_dates %in% as.Date(rownames(timeseries_data)))
-    #basically this backs out burn in and burn out days
+
+    # basically this backs out burn in and burn out days
     size_obs <- size[obs_data_idx,]
     prob_obs <- prob[obs_data_idx,]
-    #this subsets to actually observed data dates
-    #expected_cases_obs <- expected_cases[obs_data_idx,]
+
+    # this subsets to actually observed data dates
+    # expected_cases_obs <- expected_cases[obs_data_idx,]
     infection_match_data <- infection_obs[obs_data_idx,]
 
-    #define likelihood
+    # define likelihood
     if (model_likelihood == 'negative_binomial') {
 
         #realistically you only care about forecast if using case data, thus
