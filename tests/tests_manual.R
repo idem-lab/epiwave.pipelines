@@ -15,16 +15,21 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-#make target dates for end of RAT dates
-target_dates <- as.character(seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"))
 
+# make target dates for end of RAT dates
+target_dates <- as.character(seq.Date(as.Date("2022-03-01"),
+                                      as.Date("2022-08-01"),
+                                      by = "day"))
 
-PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
-PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
-RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
-RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
-## ensure all have all jurisdictions even if some test types only have
-jurisdictions <- unique(linelist$state)
+PCR_matrix <- pivot_datesum_to_wide_matrix(
+    local_summary, 'PCR', target_dates)
+
+# ensure all have all jurisdictions even if some test types only have few
+jurisdictions <- colnames(PCR_matrix)
+
+RAT_matrix <- pivot_datesum_to_wide_matrix(
+    local_summary, 'RAT', target_dates, jurisdictions)
+
 
 # set state names
 # if (is.null(jurisdiction_names)) {
@@ -39,70 +44,56 @@ n_jurisdictions <- length(jurisdictions)
 
 incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 
-# testing new delay function
-# make this separate for pcr and rat
-# delay_dist_mat_PCR <- estimate_delays(
-#     linelist[linelist$test_type == 'PCR',],
-#     jurisdictions)
-# targets::tar_load(delay_dist_mat_PCR)
-# delay_dist_mat_RAT <- estimate_delays(
-#     linelist[linelist$test_type == 'RAT',],
-#     jurisdictions)
-#targets::tar_load(delay_dist_mat_RAT)
+## timevarying delays
+# delay_dist_mat_PCR <- prepare_delay_input(
+#         target_dates, jurisdictions,
+#         delay_data = linelist[linelist$test_type == 'PCR',])
+#
+# delay_dist_mat_RAT <- prepare_delay_input(
+#     target_dates, jurisdictions,
+#     delay_data = linelist[linelist$test_type == 'RAT',])
 
+## static delays
 ECDF_delay_constant_PCR <- readRDS("data/ECDF_delay_constant_PCR.rds")
-delay_dist_mat_PCR <- matrix(list(ECDF_delay_constant_PCR),
-                             nrow = nrow(PCR_matrix),
-                             ncol = n_jurisdictions,
-                             dimnames = list(rownames(PCR_matrix),
-                                             jurisdictions))
+delay_dist_mat_PCR <- prepare_delay_input(
+        target_dates, jurisdictions,
+        constant_delay = list(ECDF_delay_constant_PCR))
+
 ECDF_delay_constant_RAT <- readRDS("data/ECDF_delay_constant_RAT.rds")
-delay_dist_mat_RAT <- matrix(list(ECDF_delay_constant_RAT),
-                             nrow = nrow(RAT_matrix),
-                             ncol = n_jurisdictions,
-                             dimnames = list(rownames(RAT_matrix),
-                                             jurisdictions))
+delay_dist_mat_RAT <- prepare_delay_input(
+    target_dates, jurisdictions,
+    constant_delay = list(ECDF_delay_constant_RAT))
 
 # apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
 
-# delay distribution
-PCR_notification_delay_distribution <- apply(
+## delay distribution
+PCR_infection_days <- calculate_days_infection(
+    delay_dist_mat_PCR)
+PCR_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_PCR,
-    c(1,2), construct_delays,
-    ecdf2 = incubation_period_distribution,
-    output = "probability",
-    stefun_output = TRUE)
+    PCR_infection_days,
+    incubation_period)
 
-PCR_infection_days <- calculate_days_infection(PCR_notification_delay_distribution)
-
-PCR_notification_delay_distribution_ext <- extend_delay_df(PCR_notification_delay_distribution)
-rownames(PCR_notification_delay_distribution_ext) <- as.character(PCR_infection_days)
-
-RAT_notification_delay_distribution <- apply(
+RAT_infection_days <- calculate_days_infection(
+    delay_dist_mat_RAT)
+RAT_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_RAT,
-    c(1,2), construct_delays,
-    ecdf2 = incubation_period_distribution,
-    output = "probability",
-    stefun_output = TRUE)
-
-RAT_infection_days <- calculate_days_infection(RAT_notification_delay_distribution)
-
-RAT_notification_delay_distribution_ext <- extend_delay_df(RAT_notification_delay_distribution)
-rownames(RAT_notification_delay_distribution_ext) <- as.character(RAT_infection_days)
+    RAT_infection_days,
+    incubation_period)
 
 
 timevarying_CAR_PCR <- prepare_ascertainment_input(
-  PCR_infection_days, jurisdictions,constant_ascertainment = 1,
-    test_type = "PCR")
+  PCR_infection_days, jurisdictions,
+  constant_ascertainment = 1,
+  test_type = "PCR")
 
 timevarying_CAR_RAT <- prepare_ascertainment_input(
   RAT_infection_days, jurisdictions,
-  constant_ascertainment =
-        1,
-    test_type = "RAT")
+  constant_ascertainment = 1,
+  test_type = "RAT")
 
 ############# above objects are all created based on input data, and does not
 ############# require the creation of an infection timeseries
