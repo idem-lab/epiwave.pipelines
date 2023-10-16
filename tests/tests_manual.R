@@ -14,10 +14,15 @@ linelist <- readRDS(linelist_file)
 
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
+
+#make target dates for end of RAT dates
+target_dates <- as.character(seq.Date(as.Date("2022-03-01"),as.Date("2022-08-01"),by = "day"))
+
+
 PCR_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'PCR')
-PCR_matrix <- PCR_matrix[501:600,]
+PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
 RAT_matrix <- pivot_datesum_to_wide_matrix(local_summary, 'RAT')
-RAT_matrix <- RAT_matrix[201:300,]
+RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
 ## ensure all have all jurisdictions even if some test types only have
 jurisdictions <- unique(linelist$state)
 
