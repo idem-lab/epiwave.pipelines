@@ -8,7 +8,7 @@
 #' @param ecdf1
 #' @param ecdf2
 #' @param output
-#' @param stefun_output
+#' @param stepfun_output
 #'
 #' @return
 #' @export
@@ -18,7 +18,7 @@ construct_delays <- function(ecdf1,
                              ecdf2 = NULL,
                              delay_range = c(-3, 28),
                              output = c("probability", "cumulative density"),
-                             stefun_output = FALSE) {
+                             stepfun_output = FALSE) {
 
 if(is.list(ecdf1)) {
     ecdf1 <- ecdf1[[1]] }
@@ -58,7 +58,7 @@ if(is.list(ecdf1)) {
     p <- p / sum(p)
 
     if (output == "probability") {
-        if (stefun_output) {
+        if (stepfun_output) {
             return(approxfun(days,p,
                              rule = 2,
                              method = "constant",
@@ -70,7 +70,7 @@ if(is.list(ecdf1)) {
             return(tibble::tibble(days,p))
         }
     } else {
-        if (stefun_output) {
+        if (stepfun_output) {
             #should we allow this? this literally just spits back out the input ecdf
             return(make_ecdf(p, days))
         } else {
