@@ -47,29 +47,38 @@ create_model_notification_data <- function(
         #get idx for forecast days, basicaly just backing out extra left days
         forecast_data_idx <- which(observed_infection_dates > max(as.Date(rownames(observed_data)))
         )
-        #number of forecast days
-        n_days_forecast <- length(forecast_data_idx)
+        # #number of forecast days
+        # n_days_forecast <- length(forecast_data_idx)
 
-        #use validity matrix - default is all valid but can use this to nullify
-        #expected mean cases for dates when reporting is stopped
-        #extend the valid mat to include forecast days by repeating the last row
-        #this ensures for states where data collection has stopped, the forecast is also 0
-        if (is.matrix(valid_mat)) {
+        # #use validity matrix - default is all valid but can use this to nullify
+        # #expected mean cases for dates when reporting is stopped
+        # #extend the valid mat to include forecast days by repeating the last row
+        # #this ensures for states where data collection has stopped, the forecast is also 0
 
-            valid_mat <- rbind(
-                valid_mat,
-                do.call("rbind",
-                        replicate(n_days_forecast,
-                                  valid_mat[nrow(valid_mat),],
-                                  simplify = FALSE)
-                )
-            )
+        if (!is.matrix(valid_mat)) {
+
+            valid_mat <- observed_data
+            valid_mat[] <- 1
         }
 
-        #multiply expected cases with the valid mat
-        expected_cases[c(obs_data_idx,
-                         forecast_data_idx),] <- expected_cases[c(obs_data_idx,
-                                               forecast_data_idx),] * valid_mat
+        valid_idx <- as.logical(valid_mat)
+
+        # if (is.matrix(valid_mat)) {
+        #
+        #     valid_mat <- rbind(
+        #         valid_mat,
+        #         do.call("rbind",
+        #                 replicate(n_days_forecast,
+        #                           valid_mat[nrow(valid_mat),],
+        #                           simplify = FALSE)
+        #         )
+        #     )
+        # }
+        #
+        # #multiply expected cases with the valid mat
+        # expected_cases[c(obs_data_idx,
+        #                  forecast_data_idx),] <- expected_cases[c(obs_data_idx,
+        #                                        forecast_data_idx),] * valid_mat
 
         # negative binomial parameters - need to change from mean and variance
         # specification to size and prob
