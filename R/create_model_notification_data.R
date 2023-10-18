@@ -36,29 +36,6 @@ create_model_notification_data <- function(
                 timevarying_proportion[, x]
         }))
 
-    # negative binomial likelihood for number of cases
-    sqrt_inv_size <- normal(0, 0.5,
-                            truncation = c(0, Inf),
-                            dim = n_jurisdictions)
-    sqrt_inv_size <- sweep(greta::zeros(n_days_infection_obs,
-                                        n_jurisdictions),
-                           2, sqrt_inv_size,
-                           FUN = "+")
-
-    size <- 1 / sqrt(sqrt_inv_size)
-    prob <- 1 / (1 + expected_cases / size)
-
-    # observed days in the data itself
-    obs_data_idx <- which(observed_infection_dates %in% as.Date(rownames(timeseries_data)))
-
-    # basically this backs out burn in and burn out days
-    size_obs <- size[obs_data_idx,]
-    prob_obs <- prob[obs_data_idx,]
-
-    # this subsets to actually observed data dates
-    # expected_cases_obs <- expected_cases[obs_data_idx,]
-    infection_match_data <- infection_obs[obs_data_idx,]
-
     # define likelihood
     if (model_likelihood == 'negative_binomial') {
 
@@ -86,24 +63,8 @@ create_model_notification_data <- function(
             valid_mat[] <- 1
         }
 
-        valid_idx <- as.logical(valid_mat)
+        valid_idx <- which(as.logical(valid_mat))
 
-        # if (is.matrix(valid_mat)) {
-        #
-        #     valid_mat <- rbind(
-        #         valid_mat,
-        #         do.call("rbind",
-        #                 replicate(n_days_forecast,
-        #                           valid_mat[nrow(valid_mat),],
-        #                           simplify = FALSE)
-        #         )
-        #     )
-        # }
-        #
-        # #multiply expected cases with the valid mat
-        # expected_cases[c(obs_data_idx,
-        #                  forecast_data_idx),] <- expected_cases[c(obs_data_idx,
-        #                                        forecast_data_idx),] * valid_mat
 
         # negative binomial parameters - need to change from mean and variance
         # specification to size and prob
@@ -125,16 +86,17 @@ create_model_notification_data <- function(
         prob_forecast <- prob[forecast_data_idx,]
         #take some random draws with these for the forecast bit?
         #array-ify the data
-        observed_data_array <- greta::as_data(observed_data)
+        observed_data_array <- greta::as_data(as.numeric(observed_data)[valid_idx])
+
         #stick in the forecast bit
         # timeseries_data_array_with_forecast <- rbind(timeseries_data_array,
         #                                              forecast_cases)
 
         #I guess you could make a version of infection time series with forecast
         #bit too but can't imagine that being useful at all
-        distribution(observed_data_array) <- greta::negative_binomial(
-            size_obs,
-            prob_obs)
+        greta::distribution(observed_data_array) <- greta::negative_binomial(
+            size_obs[valid_idx],
+            prob_obs[valid_idx])
     }
 
     greta_arrays <- module(
