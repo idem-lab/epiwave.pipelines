@@ -223,6 +223,7 @@ plot_timeseries_sims(reff_sims[[1]],
                      type = "reff",
                      dates = days_infection,
                      start_date = as.Date("2023-05-01"),
+                     end_date = as.Date("2023-09-21"),
                      states = colnames(PCR_matrix), dim_sim = "2")
 
 forecast_param_sims <- calculate(combined_model_objects$prob_forecast,
