@@ -15,19 +15,30 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-# want to use the last few months of data
-target_dates <- as.character(seq.Date(as.Date("2022-03-01"),
-                                      as.Date("2022-08-01"),
-                                      by = "day"))
+# make target dates for end of RAT dates
+target_dates <- as.character(
+                  seq.Date(as.Date("2023-05-01"),
+                         as.Date("2023-09-21"),
+                         by = "day"
+                          )
+                         )
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'PCR', target_dates)
-
-# ensure all have all jurisdictions even if some test types only have few
+# state names --- make sure consistent with column ordering
 jurisdictions <- colnames(PCR_matrix)
-
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
+
+
+PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
+
+RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
+## ensure all have all jurisdictions even if some test types only have
+
+
+#make a valid check matrix for switching off RAT dates
+RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
 
 
 # set state names
@@ -112,8 +123,12 @@ PCR_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
+<<<<<<< HEAD
     timeseries_data = PCR_matrix,
     dataID = 'pcr')
+=======
+    observed_data = PCR_matrix)
+>>>>>>> upstream/main
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
@@ -121,8 +136,13 @@ RAT_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = RAT_infection_days,
     timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
+<<<<<<< HEAD
     timeseries_data = RAT_matrix,
     dataID = 'rat')
+=======
+    observed_data = RAT_matrix,
+    valid_mat = RAT_valid_mat)
+>>>>>>> upstream/main
 
 # priors for the parameters of the lognormal distribution over the serial
 #interval from Nishiura et al., as stored in the EpiNow source code
@@ -143,6 +163,7 @@ combined_model_objects <- c(infection_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
+<<<<<<< HEAD
 m <- model(combined_model_objects$infections_timeseries,
            combined_model_objects$reff)
 plot(m)
@@ -153,6 +174,14 @@ fit <- fit_model(model = m,
                  warmup = 1000,
                  init_n_samples = 1000,
                  iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
+=======
+fit <- fit_model(combined_model_objects,
+                 n_chains = 2,
+                 max_convergence_tries = 1,
+                 warmup = 400,
+                 init_n_samples = 500,
+                 iterations_per_step = 500) # this doesn't feel like it needs to be user defined?
+>>>>>>> upstream/main
 
 # reff <- calculate(fit)
 
@@ -171,54 +200,75 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
 
-case_sims <- calculate(combined_model_objects$expected_cases_obs,
-                       values = fit$draws,
+case_sims_RAT <- calculate(combined_model_objects[[15]],
+                       values = fit,
                        nsim = 1000)
 
+plot_timeseries_sims(case_sims_RAT[[1]],
+                     type = "notification",
+                     dates = as.Date(rownames(RAT_matrix)),
+                     states = colnames(RAT_matrix),
+                     valid_mat = RAT_valid_mat,
+                     start_date = as.Date("2023-05-01"),
+                     dim = "1")
 
-# case_sims_summary <- apply(case_sims[[1]], 2:3, FUN = "mean")
+case_sims_PCR <- calculate(combined_model_objects[[8]],
+                       values = fit,
+                       nsim = 1000)
 
-#check output
-plot_posterior_timeseries_with_data(simulations = case_sims[[1]],
-                                    data_mat = PCR_matrix)
+plot_timeseries_sims(case_sims_PCR[[1]],
+                     type = "notification",
+                     dates = as.Date(rownames(PCR_matrix)),
+                     states = colnames(PCR_matrix),
+                     valid_mat = NULL,
+                     start_date = as.Date("2023-05-01"),
+                     dim = "1")
 
-infections_sims <- calculate(combined_model_objects$infections_timeseries,
-                             values = fit$draws,
-                             nsim = 1000)
-#
-# plot_posterior_timeseries_with_data(simulations = infections_sims$infections,
-#                                     data_mat = obs_N)
+infection_sims <- calculate(combined_model_objects$infection_match_data,
+                       values = fit,
+                       nsim = 1000)
 
+plot_timeseries_sims(infection_sims[[1]],
+                     type = "infection",
+                     dates = as.Date(rownames(PCR_matrix)),
+                     start_date = as.Date("2023-05-01"),
+                     states = colnames(PCR_matrix), dim_sim = "2")
 
-# # car_sims <- calculate(car,
-# #                        values = draws,
-# #                        nsim = 100)
-# gp_sim <- calculate(gp,
-#                     #values = draws,
-#                     nsim = 100)
-#
-# gp_sim <- apply(gp_sim[[1]], 2:3, FUN = "mean")
-#
-# View(gp_sim)
-#
-# infections_sim <- calculate(infections,
-#                             #values = draws,
-#                             nsim = 100)
-#
-# infections_sim <- apply(infections_sim[[1]], 2:3, FUN = "mean")
-#
-# View(infections_sim)
-#
-gp_lengthscale_sim <- calculate(test_fit$greta_arrays$gp_lengthscale,
-                                values = test_fit$draws,
-                                nsim = 100)
+reff_sims <- calculate(combined_model_objects$reff,
+                            values = fit,
+                            nsim = 1000)
 
-gp_lengthscale_sim <- apply(gp_lengthscale_sim[[1]], 2:3, FUN = "mean")
-# #
-# gp_variance_sim <- calculate(gp_variance,
-#                              values = draws,
-#                              nsim = 100)
-#
-# gp_variance_sim <- apply(gp_variance_sim[[1]], 2:3, FUN = "mean")
+plot_timeseries_sims(reff_sims[[1]],
+                     type = "reff",
+                     dates = days_infection,
+                     start_date = as.Date("2023-05-01"),
+                     end_date = as.Date("2023-09-21"),
+                     states = colnames(PCR_matrix), dim_sim = "2")
 
+forecast_param_sims <- calculate(combined_model_objects$prob_forecast,
+                                 combined_model_objects$size_forecast,
+                       values = fit,
+                       nsim = 1000)
 
+forecast_sims <- forecast_param_sims$`combined_model_objects$prob_forecast`
+
+for (i in 1:1000) {
+  for (j in 1:29) {
+    for (n in 1:8) {
+      forecast_sims[i,j,n] <- rnbinom(1,size = forecast_param_sims[[2]][i,j,n],
+                                      prob = forecast_param_sims[[1]][i,j,n])
+    }
+  }
+}
+
+plot_timeseries_sims(forecast_sims,
+                     type = "notification",
+                     dates = PCR_infection_days[which(PCR_infection_days > max(as.Date(rownames(PCR_matrix))))],
+                     states = colnames(PCR_matrix))
+
+calculate(combined_model_objects$gp_lengthscale,
+          values = fit,
+          nsim = 10)
+calculate(combined_model_objects$gp_variance,
+          values = fit,
+          nsim = 10)

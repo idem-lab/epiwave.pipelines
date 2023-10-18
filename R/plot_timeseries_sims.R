@@ -35,11 +35,16 @@ plot_timeseries_sims <- function(
     states,
     base_colour = grey(0.4),
     start_date = max(dates) - lubridate::dmonths(1),
+    end_date = max(dates),
     case_validation_data = NULL,
-    case_forecast = FALSE
+    case_forecast = FALSE,
+    valid_mat = NULL,
+    dim_sim = c("1","2")
 ) {
     #check type to plot
     type <- match.arg(type)
+    #check dimension of simulation
+    dim_sim <- match.arg(dim_sim)
 
     if (type == "notification") {
         cat("plotting case counts by notification date!")
@@ -73,50 +78,86 @@ plot_timeseries_sims <- function(
         projection_at <- extra_dates[1]
     } else {extra_dates <- NULL} #no extra dates when no forecast
 
-    #check if date sequence length and calculated values match
-    if (length(dates) != nrow(mean)) {
-        stop("Error: number of days in timeseries not equal to number of date labels provided! Did you mis-specify if forecasting is required?")
+
+
+    #when using date by state dim for simulations
+    if (dim_sim == "2") {
+
+        #check if date sequence length and calculated values match
+        if (length(dates) != nrow(mean)) {
+            stop("Error: number of days in timeseries not equal to number of date labels provided! Did you mis-specify if forecasting is required?")
+        }
+
+        #construct a tibble of data state labels and the calculated vals
+        vals <- rbind(
+            mean,
+            ci_90_lo,
+            ci_90_hi,
+            ci_50_hi,
+            ci_50_lo
+        )
+
+        full_dates <- rep(dates,5)
+        full_label <- rep(c("mean",
+                            "ci_90_lo",
+                            "ci_90_hi",
+                            "ci_50_hi",
+                            "ci_50_lo"),
+                          each = length(dates)
+        )
+
+        df <- tibble::tibble(date = full_dates,
+                             label = full_label
+        )
+
+        df <- cbind(df,vals)
+        colnames(df) <- c(colnames(df)[1:2],states)
+
+        df <- df |>
+            tidyr::pivot_longer(cols = 3:ncol(df),
+                                values_to = "value",
+                                names_to = "state")
+
+        df <- df |>
+            tidyr::pivot_wider(names_from = label,
+                               values_from = value)
+    } else {
+        #if dimension of simulation is a vector
+        #build a df with combination of date and state as row
+        df <- tibble::tibble(date = rep(dates,length(states)),
+                             state = rep(states, each = length(dates))
+                             )
+
+        #subset to valid dates
+        #when all dates are valid don't subset
+        if (!is.null(valid_mat)) {
+            df <- df[as.logical(valid_mat),]
+        }
+        #this should give us the same number of rows as the simulations
+
+        vals <- cbind(
+            mean,
+            ci_90_lo,
+            ci_90_hi,
+            ci_50_hi,
+            ci_50_lo
+        )
+
+        df <- cbind(df,vals)
+
+        colnames(df)[3:7] <- c("mean",
+                               "ci_90_lo",
+                               "ci_90_hi",
+                               "ci_50_hi",
+                               "ci_50_lo")
     }
 
 
-    #construct a tibble of data state labels and the calculated vals
-    vals <- rbind(
-        mean,
-        ci_90_lo,
-        ci_90_hi,
-        ci_50_hi,
-        ci_50_lo
-    )
-
-    full_dates <- rep(dates,5)
-    full_label <- rep(c("mean",
-                        "ci_90_lo",
-                        "ci_90_hi",
-                        "ci_50_hi",
-                        "ci_50_lo"),
-                      each = length(dates)
-    )
-
-    df <- tibble::tibble(date = full_dates,
-                 label = full_label
-    )
-
-    df <- cbind(df,vals)
-    colnames(df) <- c(colnames(df)[1:2],states)
-
-    df <- df |>
-        tidyr::pivot_longer(cols = 3:ncol(df),
-                     values_to = "value",
-                     names_to = "state")
-
-    df <- df |>
-        tidyr::pivot_wider(names_from = label,
-                    values_from = value)
 
     df <- df |>
         dplyr::mutate(type = ifelse(date %in% extra_dates, "forecast","estimate"))
 
-    df <- df |> dplyr::filter(date >= start_date)
+    df <- df |> dplyr::filter(date >= start_date, date <= end_date)
 
 
     #dynamic date label and breaks
@@ -157,7 +198,8 @@ plot_timeseries_sims <- function(
         ggplot2::facet_wrap(~ state, ncol = 2, scales = "free") +
         ggplot2::scale_x_date(date_breaks = date_breaks,
                      date_minor_breaks = date_minor_breaks,
-                     date_labels = date_labels) +
+                     date_labels = date_labels,
+                     limits = c(as.Date(start_date),end_date)) +
         ggplot2::scale_alpha(range = c(0, 0.5)) +
         ggplot2::scale_y_continuous(name = ylab_name) +
         ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_90_lo,
