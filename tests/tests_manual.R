@@ -17,9 +17,9 @@ local_summary <- summarise_linelist(linelist,
 
 
 # make target dates for end of RAT dates
-target_dates <- seq.Date(as.Date("2022-03-01"),
-                                      as.Date("2022-08-01"),
-                                      by = "day")
+target_dates <- seq.Date(as.Date("2023-05-01"),
+                         as.Date("2024-01-01"),
+                         by = "day")
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'PCR', target_dates)
