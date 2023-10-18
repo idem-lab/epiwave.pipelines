@@ -31,18 +31,8 @@ RAT_matrix <- pivot_datesum_to_wide_matrix(
 
 
 
-#make a valid check matrix for switching off RAT dates
+# make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
-
-
-# set state names
-# if (is.null(jurisdiction_names)) {
-#     jurisdictions <- colnames(notification_matrix)
-# } else if (length(jurisdiction_names) != ncol(notification_matrix)) {
-#     stop("Error: supplied jurisdiction names has different length from number of columns in notification matrix")
-# } else {
-#     jurisdictions <- jurisdiction_names
-# }
 
 n_jurisdictions <- length(jurisdictions)
 
@@ -68,7 +58,6 @@ delay_dist_mat_RAT <- prepare_delay_input(
     target_dates, jurisdictions,
     constant_delay = list(ECDF_delay_constant_RAT))
 
-# apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
@@ -117,12 +106,8 @@ PCR_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
-<<<<<<< HEAD
-    timeseries_data = PCR_matrix,
+    observed_data = PCR_matrix,
     dataID = 'pcr')
-=======
-    observed_data = PCR_matrix)
->>>>>>> upstream/main
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
@@ -130,13 +115,9 @@ RAT_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = RAT_infection_days,
     timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
-<<<<<<< HEAD
-    timeseries_data = RAT_matrix,
-    dataID = 'rat')
-=======
     observed_data = RAT_matrix,
-    valid_mat = RAT_valid_mat)
->>>>>>> upstream/main
+    valid_mat = RAT_valid_mat,
+    dataID = 'rat')
 
 # priors for the parameters of the lognormal distribution over the serial
 #interval from Nishiura et al., as stored in the EpiNow source code
@@ -157,25 +138,16 @@ combined_model_objects <- c(infection_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
-<<<<<<< HEAD
 m <- model(combined_model_objects$infections_timeseries,
            combined_model_objects$reff)
 plot(m)
 
 fit <- fit_model(model = m,
                  n_chains = 4,
-                 max_convergence_tries = 5,
+                 max_convergence_tries = 1,
                  warmup = 1000,
                  init_n_samples = 1000,
                  iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
-=======
-fit <- fit_model(combined_model_objects,
-                 n_chains = 2,
-                 max_convergence_tries = 1,
-                 warmup = 400,
-                 init_n_samples = 500,
-                 iterations_per_step = 500) # this doesn't feel like it needs to be user defined?
->>>>>>> upstream/main
 
 # reff <- calculate(fit)
 
