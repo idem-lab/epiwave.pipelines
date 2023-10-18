@@ -19,22 +19,16 @@ local_summary <- summarise_linelist(linelist,
 target_dates <- as.character(
                   seq.Date(as.Date("2023-05-01"),
                          as.Date("2023-09-21"),
-                         by = "day"
-                          )
-                         )
+                         by = "day"))
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'PCR', target_dates)
+
 # state names --- make sure consistent with column ordering
 jurisdictions <- colnames(PCR_matrix)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
 
-
-PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
-
-RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
-## ensure all have all jurisdictions even if some test types only have
 
 
 #make a valid check matrix for switching off RAT dates
