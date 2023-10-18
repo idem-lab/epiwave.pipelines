@@ -43,7 +43,7 @@ if(is.list(ecdf1)) {
             z = days) |>
             dplyr::filter(x - z >= 0) |>
             dplyr::group_by(x) |>
-            dplyr::summarise(p = sum(p1(z + 1) * p2(x - z + 1))) |>
+            dplyr::summarise(p = sum(p1(z ) * p2(x - z ))) |>
             dplyr::pull(p)
     }
 
