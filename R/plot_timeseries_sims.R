@@ -35,6 +35,7 @@ plot_timeseries_sims <- function(
     states,
     base_colour = grey(0.4),
     start_date = max(dates) - lubridate::dmonths(1),
+    end_date = max(dates),
     case_validation_data = NULL,
     case_forecast = FALSE,
     valid_mat = NULL,
@@ -156,7 +157,7 @@ plot_timeseries_sims <- function(
     df <- df |>
         dplyr::mutate(type = ifelse(date %in% extra_dates, "forecast","estimate"))
 
-    df <- df |> dplyr::filter(date >= start_date)
+    df <- df |> dplyr::filter(date >= start_date, date <= end_date)
 
 
     #dynamic date label and breaks
@@ -198,7 +199,7 @@ plot_timeseries_sims <- function(
         ggplot2::scale_x_date(date_breaks = date_breaks,
                      date_minor_breaks = date_minor_breaks,
                      date_labels = date_labels,
-                     limits = c(as.Date(start_date),max(dates))) +
+                     limits = c(as.Date(start_date),end_date)) +
         ggplot2::scale_alpha(range = c(0, 0.5)) +
         ggplot2::scale_y_continuous(name = ylab_name) +
         ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_90_lo,
