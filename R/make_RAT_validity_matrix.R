@@ -1,7 +1,8 @@
-#' takes a RAT notification matrix, returns a logical matrix designating if a
-#' date is valid or not, based on when RAT reporting was officially ceased for a
-#' state. The input matrix must have state as colnames and date as rownames, the
-#' date for off-switch is hard-coded for each state
+#' takes a RAT notification matrix, returns a logical matrix designating if RAT
+#' data is available and reliable for that date and state, based on when RAT
+#' reporting was officially ceased for a state. The input matrix must have state
+#' as colnames and date as rownames, the date for off-switch is hard-coded for
+#' each state
 #'
 #' @param RAT_matrix
 #'
