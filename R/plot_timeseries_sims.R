@@ -258,7 +258,8 @@ plot_timeseries_sims <- function(
 
     if (!is.null(case_validation_data) & type != 'reff') {
         p <- p + ggplot2::geom_point(data = case_validation_data |>
-                                dplyr::filter(date >= start_date),
+                                dplyr::filter(date >= start_date,
+                                              date <= end_date),
                                 ggplot2::aes(x = date, y = count),
                             inherit.aes = TRUE,
                             size = 0.3)
