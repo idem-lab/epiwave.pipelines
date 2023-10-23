@@ -107,7 +107,8 @@ create_model_notification_data <- function(
         prob,
         observed_data_array,
         size_forecast,
-        prob_forecast
+        prob_forecast,
+        convolution_matrices
     )
     # infection_model_objects[[length(infection_model_objects) + 1]] <- module(size)
     # infection_model_objects
@@ -117,7 +118,10 @@ create_model_notification_data <- function(
         paste0(dataID, '_infection_match_data'),
         paste0(dataID, '_size'),
         paste0(dataID, '_prob'),
-        paste0(dataID, '_timeseries_data_array')
+        paste0(dataID, '_observed_data_array'),
+        paste0(dataID, '_size_forecast'),
+        paste0(dataID, '_prob_forecast'),
+        paste0(dataID, '_convolution_matrices')
     )
 
     return(greta_arrays)
