@@ -19,7 +19,7 @@ local_summary <- summarise_linelist(linelist,
 # make target dates for end of RAT dates
 target_dates <- as.character(
                   seq.Date(as.Date("2023-05-01"),
-                         as.Date("2023-09-21"),
+                         as.Date("2023-09-01"),
                          by = "day"
                           )
                          )
@@ -30,13 +30,6 @@ PCR_matrix <- pivot_datesum_to_wide_matrix(
 jurisdictions <- colnames(PCR_matrix)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
-
-
-PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
-
-RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
-## ensure all have all jurisdictions even if some test types only have
-
 
 #make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
@@ -153,18 +146,17 @@ reff_model_objects <- estimate_reff(
     generation_interval_mass_fxns = generation_interval_distribution)
 
 combined_model_objects <- c(infection_model_objects,
-                            PCR_notification_model_objects,
+                            #PCR_notification_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
 fit <- fit_model(combined_model_objects,
-                 n_chains = 2,
-                 max_convergence_tries = 1,
-                 warmup = 400,
-                 init_n_samples = 500,
-                 iterations_per_step = 500) # this doesn't feel like it needs to be user defined?
+                 n_chains = 8,
+                 max_convergence_tries = 3,
+                 warmup = 1000,
+                 init_n_samples = 1500,
+                 iterations_per_step = 1500) # this doesn't feel like it needs to be user defined?
 
-# reff <- calculate(fit)
 
 ###=== IN DEV
 
@@ -181,7 +173,7 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
 
-case_sims_RAT <- calculate(combined_model_objects[[15]],
+case_sims_RAT <- calculate(combined_model_objects$observed_data_array,
                        values = fit,
                        nsim = 1000)
 
@@ -191,9 +183,12 @@ plot_timeseries_sims(case_sims_RAT[[1]],
                      states = colnames(RAT_matrix),
                      valid_mat = RAT_valid_mat,
                      start_date = as.Date("2023-05-01"),
-                     dim = "1")
+                     dim = "1",
+                     case_validation_data = local_summary |>
+                       dplyr::rename("date" = date_confirmation,
+                                     "count" = RAT))
 
-case_sims_PCR <- calculate(combined_model_objects[[8]],
+case_sims_PCR <- calculate(combined_model_objects$observed_data_array,
                        values = fit,
                        nsim = 1000)
 
@@ -202,18 +197,21 @@ plot_timeseries_sims(case_sims_PCR[[1]],
                      dates = as.Date(rownames(PCR_matrix)),
                      states = colnames(PCR_matrix),
                      valid_mat = NULL,
-                     start_date = as.Date("2023-05-01"),
-                     dim = "1")
+                     start_date = as.Date(rownames(PCR_matrix)[1]),
+                     dim = "1",
+                     case_validation_data = local_summary |>
+                       dplyr::rename("date" = date_confirmation,
+                                     "count" = PCR))
 
-infection_sims <- calculate(combined_model_objects$infection_match_data,
+infection_sims <- calculate(combined_model_objects$infections_timeseries,
                        values = fit,
                        nsim = 1000)
 
 plot_timeseries_sims(infection_sims[[1]],
                      type = "infection",
-                     dates = as.Date(rownames(PCR_matrix)),
-                     start_date = as.Date("2023-05-01"),
-                     states = colnames(PCR_matrix), dim_sim = "2")
+                     dates = days_infection,
+                     start_date = as.Date(rownames(PCR_matrix)[1]),
+                     states = jurisdictions, dim_sim = "2")
 
 reff_sims <- calculate(combined_model_objects$reff,
                             values = fit,
@@ -222,9 +220,9 @@ reff_sims <- calculate(combined_model_objects$reff,
 plot_timeseries_sims(reff_sims[[1]],
                      type = "reff",
                      dates = days_infection,
-                     start_date = as.Date("2023-05-01"),
-                     end_date = as.Date("2023-09-21"),
-                     states = colnames(PCR_matrix), dim_sim = "2")
+                     start_date = as.Date(rownames(PCR_matrix)[1]),
+                     end_date = as.Date(rownames(PCR_matrix)[nrow(PCR_matrix)]),
+                     states = jurisdictions, dim_sim = "2")
 
 forecast_param_sims <- calculate(combined_model_objects$prob_forecast,
                                  combined_model_objects$size_forecast,

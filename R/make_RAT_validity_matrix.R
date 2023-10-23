@@ -20,6 +20,6 @@ make_RAT_validity_matrix <- function(RAT_matrix) {
                   colnames(RAT_valid_mat) == "SA"] <- FALSE
     RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-09-01"),
                   colnames(RAT_valid_mat) == "QLD"] <- FALSE
-
-    RAT_valid_mat
+    #coerce to boolean
+    RAT_valid_mat <- ifelse(RAT_valid_mat == 1,TRUE, FALSE)
 }

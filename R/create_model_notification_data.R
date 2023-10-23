@@ -39,19 +39,6 @@ create_model_notification_data <- function(
     # define likelihood
     if (model_likelihood == 'negative_binomial') {
 
-        #observed days in the data itself
-        #basically this backs out extra left and right days
-        obs_data_idx <- which(observed_infection_dates %in% as.Date(rownames(observed_data)))
-
-        #truncated infection timeseries matching data dates, just for plotting
-        infection_match_data <- infection_obs[obs_data_idx,]
-
-        #get idx for forecast days, basicaly just backing out extra left days
-        forecast_data_idx <- which(observed_infection_dates > max(as.Date(rownames(observed_data)))
-        )
-        # #number of forecast days
-        # n_days_forecast <- length(forecast_data_idx)
-
         # #use validity matrix - default is all valid but can use this to nullify
         # #expected mean cases for dates when reporting is stopped
         # #extend the valid mat to include forecast days by repeating the last row
@@ -60,11 +47,16 @@ create_model_notification_data <- function(
         if (!is.matrix(valid_mat)) {
 
             valid_mat <- observed_data
-            valid_mat[] <- 1
+            valid_mat[] <- TRUE
+            valid_idx <- which(as.logical(valid_mat))
+        } else {
+            valid_idx <- which(valid_mat,arr.ind = FALSE)
         }
 
-        valid_idx <- which(as.logical(valid_mat))
 
+        #observed days in the data itself
+        #basically this backs out extra left and right days
+        obs_data_idx <- which(observed_infection_dates %in% as.Date(rownames(observed_data)))
 
         # negative binomial parameters - need to change from mean and variance
         # specification to size and prob
@@ -81,10 +73,6 @@ create_model_notification_data <- function(
         size_obs <- size[obs_data_idx,]
         prob_obs <- prob[obs_data_idx,]
 
-        #proposal neg binom params for a forecast bit
-        size_forecast <- size[forecast_data_idx,]
-        prob_forecast <- prob[forecast_data_idx,]
-        #take some random draws with these for the forecast bit?
         #array-ify the data
         observed_data_array <- greta::as_data(as.numeric(observed_data)[valid_idx])
 
@@ -100,13 +88,9 @@ create_model_notification_data <- function(
     }
 
     greta_arrays <- module(
-        infection_obs,
-        infection_match_data,
         size,
         prob,
-        observed_data_array,
-        size_forecast,
-        prob_forecast
+        observed_data_array
     )
     # infection_model_objects[[length(infection_model_objects) + 1]] <- module(size)
     # infection_model_objects
