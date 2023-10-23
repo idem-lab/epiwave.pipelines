@@ -15,34 +15,23 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-
 # make target dates for end of RAT dates
 target_dates <- as.character(
                   seq.Date(as.Date("2023-05-01"),
-                         as.Date("2023-09-01"),
-                         by = "day"
-                          )
-                         )
+                         as.Date("2023-09-21"),
+                         by = "day"))
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'PCR', target_dates)
+
 # state names --- make sure consistent with column ordering
 jurisdictions <- colnames(PCR_matrix)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
 
-#make a valid check matrix for switching off RAT dates
+
+# make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
-
-
-# set state names
-# if (is.null(jurisdiction_names)) {
-#     jurisdictions <- colnames(notification_matrix)
-# } else if (length(jurisdiction_names) != ncol(notification_matrix)) {
-#     stop("Error: supplied jurisdiction names has different length from number of columns in notification matrix")
-# } else {
-#     jurisdictions <- jurisdiction_names
-# }
 
 n_jurisdictions <- length(jurisdictions)
 
@@ -68,26 +57,22 @@ delay_dist_mat_RAT <- prepare_delay_input(
     target_dates, jurisdictions,
     constant_delay = list(ECDF_delay_constant_RAT))
 
-# apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
 
 ## delay distribution
-PCR_infection_days <- calculate_days_infection(
-    delay_dist_mat_PCR)
+PCR_infection_days <- calculate_days_infection(delay_dist_mat_PCR)
 PCR_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_PCR,
     PCR_infection_days,
     incubation_period)
 
-RAT_infection_days <- calculate_days_infection(
-    delay_dist_mat_RAT)
+RAT_infection_days <- calculate_days_infection(delay_dist_mat_RAT)
 RAT_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_RAT,
     RAT_infection_days,
     incubation_period)
-
 
 timevarying_CAR_PCR <- prepare_ascertainment_input(
   PCR_infection_days, jurisdictions,
@@ -120,7 +105,8 @@ PCR_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
-    observed_data = PCR_matrix)
+    observed_data = PCR_matrix,
+    dataID = 'pcr')
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
@@ -129,7 +115,8 @@ RAT_notification_model_objects <- create_model_notification_data(
     timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
     observed_data = RAT_matrix,
-    valid_mat = RAT_valid_mat)
+    valid_mat = RAT_valid_mat,
+    dataID = 'rat')
 
 # priors for the parameters of the lognormal distribution over the serial
 #interval from Nishiura et al., as stored in the EpiNow source code
@@ -150,12 +137,18 @@ combined_model_objects <- c(infection_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
-fit <- fit_model(combined_model_objects,
-                 n_chains = 8,
-                 max_convergence_tries = 3,
+
+m <- model(combined_model_objects$infections_timeseries,
+           combined_model_objects$reff)
+plot(m)
+
+fit <- fit_model(model = m,
+                 n_chains = 4,
+                 max_convergence_tries = 1,
                  warmup = 1000,
-                 init_n_samples = 1500,
-                 iterations_per_step = 1500) # this doesn't feel like it needs to be user defined?
+                 init_n_samples = 1000,
+                 iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
+
 
 
 ###=== IN DEV
@@ -173,7 +166,7 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
 
-case_sims_RAT <- calculate(combined_model_objects$observed_data_array,
+case_sims_RAT <- calculate(combined_model_objects$rat_observed_data_array,
                        values = fit,
                        nsim = 1000)
 
@@ -188,7 +181,7 @@ plot_timeseries_sims(case_sims_RAT[[1]],
                        dplyr::rename("date" = date_confirmation,
                                      "count" = RAT))
 
-case_sims_PCR <- calculate(combined_model_objects$observed_data_array,
+case_sims_PCR <- calculate(combined_model_objects$pcr_observed_data_array,
                        values = fit,
                        nsim = 1000)
 
@@ -224,26 +217,6 @@ plot_timeseries_sims(reff_sims[[1]],
                      end_date = as.Date(rownames(PCR_matrix)[nrow(PCR_matrix)]),
                      states = jurisdictions, dim_sim = "2")
 
-forecast_param_sims <- calculate(combined_model_objects$prob_forecast,
-                                 combined_model_objects$size_forecast,
-                       values = fit,
-                       nsim = 1000)
-
-forecast_sims <- forecast_param_sims$`combined_model_objects$prob_forecast`
-
-for (i in 1:1000) {
-  for (j in 1:29) {
-    for (n in 1:8) {
-      forecast_sims[i,j,n] <- rnbinom(1,size = forecast_param_sims[[2]][i,j,n],
-                                      prob = forecast_param_sims[[1]][i,j,n])
-    }
-  }
-}
-
-plot_timeseries_sims(forecast_sims,
-                     type = "notification",
-                     dates = PCR_infection_days[which(PCR_infection_days > max(as.Date(rownames(PCR_matrix))))],
-                     states = colnames(PCR_matrix))
 
 calculate(combined_model_objects$gp_lengthscale,
           values = fit,

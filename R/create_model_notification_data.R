@@ -5,8 +5,9 @@ create_model_notification_data <- function(
         timevarying_delay_dist_ext,
         timevarying_proportion,
         observed_data,
+        model_likelihood = 'negative_binomial',
         valid_mat = 1,
-        model_likelihood = 'negative_binomial') {
+        dataID) {
 
     n_days_infection <- nrow(infections_timeseries)
     n_jurisdictions <- ncol(infections_timeseries)
@@ -53,7 +54,6 @@ create_model_notification_data <- function(
             valid_idx <- which(valid_mat,arr.ind = FALSE)
         }
 
-
         #observed days in the data itself
         #basically this backs out extra left and right days
         obs_data_idx <- which(observed_infection_dates %in% as.Date(rownames(observed_data)))
@@ -76,23 +76,22 @@ create_model_notification_data <- function(
         #array-ify the data
         observed_data_array <- greta::as_data(as.numeric(observed_data)[valid_idx])
 
-        #stick in the forecast bit
-        # timeseries_data_array_with_forecast <- rbind(timeseries_data_array,
-        #                                              forecast_cases)
-
-        #I guess you could make a version of infection time series with forecast
-        #bit too but can't imagine that being useful at all
         greta::distribution(observed_data_array) <- greta::negative_binomial(
             size_obs[valid_idx],
             prob_obs[valid_idx])
     }
 
-    greta_arrays <- module(
+    greta_arrays <- list(
         size,
         prob,
         observed_data_array
     )
-    # infection_model_objects[[length(infection_model_objects) + 1]] <- module(size)
-    # infection_model_objects
+
+    names(greta_arrays) <- c(
+        paste0(dataID, '_size'),
+        paste0(dataID, '_prob'),
+        paste0(dataID, '_observed_data_array')
+    )
+
     return(greta_arrays)
 }
