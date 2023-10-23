@@ -1,15 +1,12 @@
-fit_model <- function (combined_model_objects,
+fit_model <- function (model,
                        n_chains = 4,
-                       max_convergence_tries = 2,
-                       warmup = 500,
+                       max_convergence_tries = 5,
+                       warmup = 1000,
                        init_n_samples = 1000,
                        iterations_per_step = 1000) {
 
-    m <- model(combined_model_objects$infections_timeseries,
-               combined_model_objects$reff)
-
     # get stable inits
-    init <- generate_valid_inits(model = m,
+    init <- generate_valid_inits(model = model,
                                  chains = n_chains,
                                  max_tries = 1000)
 

@@ -8,3 +8,4 @@ data-raw/
 outputs/
 questions
 *.rds
+*.png

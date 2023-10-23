@@ -5,8 +5,9 @@ create_model_notification_data <- function(
         timevarying_delay_dist_ext,
         timevarying_proportion,
         observed_data,
+        model_likelihood = 'negative_binomial',
         valid_mat = 1,
-        model_likelihood = 'negative_binomial') {
+        dataID) {
 
     n_days_infection <- nrow(infections_timeseries)
     n_jurisdictions <- ncol(infections_timeseries)
@@ -99,7 +100,7 @@ create_model_notification_data <- function(
             prob_obs[valid_idx])
     }
 
-    greta_arrays <- module(
+    greta_arrays <- list(#module(#
         infection_obs,
         infection_match_data,
         size,
@@ -110,5 +111,14 @@ create_model_notification_data <- function(
     )
     # infection_model_objects[[length(infection_model_objects) + 1]] <- module(size)
     # infection_model_objects
+
+    names(greta_arrays) <- c(
+        paste0(dataID, '_infection_obs'),
+        paste0(dataID, '_infection_match_data'),
+        paste0(dataID, '_size'),
+        paste0(dataID, '_prob'),
+        paste0(dataID, '_timeseries_data_array')
+    )
+
     return(greta_arrays)
 }

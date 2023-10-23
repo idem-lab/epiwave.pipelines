@@ -15,41 +15,24 @@ linelist <- readRDS(linelist_file)
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-
 # make target dates for end of RAT dates
 target_dates <- as.character(
                   seq.Date(as.Date("2023-05-01"),
                          as.Date("2023-09-21"),
-                         by = "day"
-                          )
-                         )
+                         by = "day"))
 
 PCR_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'PCR', target_dates)
+
 # state names --- make sure consistent with column ordering
 jurisdictions <- colnames(PCR_matrix)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
 
 
-PCR_matrix <- PCR_matrix[rownames(PCR_matrix) %in% target_dates,]
 
-RAT_matrix <- RAT_matrix[rownames(RAT_matrix) %in% target_dates,]
-## ensure all have all jurisdictions even if some test types only have
-
-
-#make a valid check matrix for switching off RAT dates
+# make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
-
-
-# set state names
-# if (is.null(jurisdiction_names)) {
-#     jurisdictions <- colnames(notification_matrix)
-# } else if (length(jurisdiction_names) != ncol(notification_matrix)) {
-#     stop("Error: supplied jurisdiction names has different length from number of columns in notification matrix")
-# } else {
-#     jurisdictions <- jurisdiction_names
-# }
 
 n_jurisdictions <- length(jurisdictions)
 
@@ -75,26 +58,22 @@ delay_dist_mat_RAT <- prepare_delay_input(
     target_dates, jurisdictions,
     constant_delay = list(ECDF_delay_constant_RAT))
 
-# apply construct_delays to each cell
 # combine the incubation and notification delays
 # this function only works if there are no "null" in the delay_dist_mats.
 # therefore revert_to_national must be true
 
 ## delay distribution
-PCR_infection_days <- calculate_days_infection(
-    delay_dist_mat_PCR)
+PCR_infection_days <- calculate_days_infection(delay_dist_mat_PCR)
 PCR_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_PCR,
     PCR_infection_days,
     incubation_period)
 
-RAT_infection_days <- calculate_days_infection(
-    delay_dist_mat_RAT)
+RAT_infection_days <- calculate_days_infection(delay_dist_mat_RAT)
 RAT_notification_delay_distribution <- extend_delay_mat(
     delay_dist_mat_RAT,
     RAT_infection_days,
     incubation_period)
-
 
 timevarying_CAR_PCR <- prepare_ascertainment_input(
   PCR_infection_days, jurisdictions,
@@ -127,7 +106,8 @@ PCR_notification_model_objects <- create_model_notification_data(
     observed_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
-    observed_data = PCR_matrix)
+    observed_data = PCR_matrix,
+    dataID = 'pcr')
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
@@ -136,7 +116,8 @@ RAT_notification_model_objects <- create_model_notification_data(
     timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
     observed_data = RAT_matrix,
-    valid_mat = RAT_valid_mat)
+    valid_mat = RAT_valid_mat,
+    dataID = 'rat')
 
 # priors for the parameters of the lognormal distribution over the serial
 #interval from Nishiura et al., as stored in the EpiNow source code
@@ -157,12 +138,16 @@ combined_model_objects <- c(infection_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
-fit <- fit_model(combined_model_objects,
-                 n_chains = 2,
+m <- model(combined_model_objects$infections_timeseries,
+           combined_model_objects$reff)
+plot(m)
+
+fit <- fit_model(model = m,
+                 n_chains = 4,
                  max_convergence_tries = 1,
-                 warmup = 400,
-                 init_n_samples = 500,
-                 iterations_per_step = 500) # this doesn't feel like it needs to be user defined?
+                 warmup = 1000,
+                 init_n_samples = 1000,
+                 iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
 
 # reff <- calculate(fit)
 
