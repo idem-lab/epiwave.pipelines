@@ -9,7 +9,7 @@ tar_option_set(
     format = "rds" # default storage format
 )
 
-module <- greta::.internals$utils$misc$module
+# module <- greta::.internals$utils$misc$module
 
 # tar_make_clustermq() configuration (okay to leave alone):
 # options(clustermq.scheduler = "multicore")
@@ -25,22 +25,15 @@ values <- tibble::tibble(test = c('PCR', 'RAT'))
 # Replace the target list below with your own:
 upstream_targets <- list(
     tar_target(
-        linelist_file,
-        'data-raw/linelist_processed_2023_09_21.rds',
-        format = 'rds'
-    ),
-    tar_target(
-        linelist,
-        readRDS(linelist_file)
-    ),
-    tar_target(
-        local_summary,
-        summarise_linelist(linelist,
-                           import_status_option = 'local')
+        target_dates,
+        as.character(
+            seq.Date(as.Date("2022-05-18"),
+                     as.Date("2022-10-18"),
+                     by = "day"))
     ),
     tar_target(
         jurisdictions,
-        unique(linelist$state)
+        colnames(PCR_matrix)
     ),
     tar_target(
         n_jurisdictions,
@@ -67,22 +60,28 @@ mapped <- tar_map(
     unlist = FALSE, # Return a nested list from tar_map()
     values = values,
     tar_target(
-        summary_matrix,
-        pivot_datesum_to_wide_matrix(local_summary, test)
+        delay_dist_mat,
+        prepare_delay_input(
+            target_dates, jurisdictions,
+            constant_delay = list(ECDF_delay_constant_PCR))
     ),
     tar_target(
-        delay_dist_mat,
-        estimate_delays(
-            linelist[linelist$test_type == test,],
-            jurisdictions)
+        infection_days,
+        calculate_days_infection(delay_dist_mat)
     ),
     tar_target(
         notification_delay_distribution,
-        apply(delay_dist_mat,
-              c(1,2), construct_delays,
-              ecdf2 = incubation_period_distribution,
-              output = "probability",
-              stefun_output = TRUE)
+        extend_delay_mat(
+            delay_dist_mat,
+            infection_days,
+            incubation_period)
+    ),
+    tar_target(
+        timevarying_CAR,
+        prepare_ascertainment_input(
+            infection_days, jurisdictions,
+            constant_ascertainment = 1,
+            test_type = test)
     ),
     tar_target(
         notification_model_objects,
@@ -112,12 +111,6 @@ downstream_targets <- list(
     tar_target(
         n_days_infection,
         length(infection_days)
-    ),
-    tar_target(
-        timevarying_CAR,
-        matrix(0.75, nrow = n_days_infection,
-               ncol = n_jurisdictions,
-               dimnames = list(infection_days, jurisdictions))
     ),
     tar_target(
         infection_model_objects,
