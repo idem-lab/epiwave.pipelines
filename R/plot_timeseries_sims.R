@@ -267,8 +267,11 @@ plot_timeseries_sims <- function(
 
     #fix reff plot ylim
     if (type == 'reff') {
-        ylim <- c(min(df$ci_90_lo), max(df$ci_90_hi))
-        p <- p + ggplot2::coord_cartesian(ylim = ylim)
+        # ylim <- c(min(df$ci_90_lo), max(df$ci_90_hi))
+        ylim <- c(0, 2)
+        p <- p + ggplot2::coord_cartesian(ylim = ylim) +
+            ggplot2::geom_hline(yintercept = 1, linetype = 'dotted', colour = "black")
+
     }
 
     p
