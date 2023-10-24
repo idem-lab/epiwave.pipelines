@@ -29,9 +29,21 @@ jurisdictions <- colnames(PCR_matrix)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
 
+# get test type proportion matrices
+PCR_prop_matrix <- pivot_test_type_prop_to_wide_matrix(
+  local_summary, 'prop_PCR', target_dates)
+RAT_prop_matrix <- pivot_test_type_prop_to_wide_matrix(
+  local_summary, 'prop_RAT', target_dates)
 
-# make a valid check matrix for switching off RAT dates
+
+#make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
+
+# condition date validity on at least 1 case being reported
+PCR_valid_mat <- PCR_prop_matrix > 0
+RAT_valid_mat <- RAT_valid_mat & RAT_prop_matrix > 0
+
+
 
 n_jurisdictions <- length(jurisdictions)
 
@@ -102,19 +114,22 @@ infection_model_objects <- create_infection_timeseries(
 PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
-    observed_infection_dates = PCR_infection_days,
+    observable_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_PCR,
     observed_data = PCR_matrix,
+    case_type_proportion = PCR_prop_matrix,
+    valid_mat = PCR_valid_mat,
     dataID = 'pcr')
 
 RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
-    observed_infection_dates = RAT_infection_days,
+    observable_infection_dates = RAT_infection_days,
     timevarying_delay_dist = RAT_notification_delay_distribution,
     timevarying_proportion = timevarying_CAR_RAT,
     observed_data = RAT_matrix,
+    case_type_proportion = RAT_prop_matrix,
     valid_mat = RAT_valid_mat,
     dataID = 'rat')
 
@@ -133,7 +148,7 @@ reff_model_objects <- estimate_reff(
     generation_interval_mass_fxns = generation_interval_distribution)
 
 combined_model_objects <- c(infection_model_objects,
-                            #PCR_notification_model_objects,
+                            PCR_notification_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
 
@@ -189,7 +204,7 @@ plot_timeseries_sims(case_sims_PCR[[1]],
                      type = "notification",
                      dates = as.Date(rownames(PCR_matrix)),
                      states = colnames(PCR_matrix),
-                     valid_mat = NULL,
+                     valid_mat = PCR_valid_mat,
                      start_date = as.Date(rownames(PCR_matrix)[1]),
                      dim = "1",
                      case_validation_data = local_summary |>
@@ -204,7 +219,11 @@ plot_timeseries_sims(infection_sims[[1]],
                      type = "infection",
                      dates = days_infection,
                      start_date = as.Date(rownames(PCR_matrix)[1]),
-                     states = jurisdictions, dim_sim = "2")
+                     states = jurisdictions,
+                     dim_sim = "2",
+                     case_validation_data = local_summary |>
+                       dplyr::rename("date" = date_confirmation,
+                                     "count" = total))
 
 reff_sims <- calculate(combined_model_objects$reff,
                             values = fit,

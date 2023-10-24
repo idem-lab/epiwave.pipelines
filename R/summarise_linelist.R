@@ -9,7 +9,9 @@ summarise_linelist <- function (linelist,
                            names_from = test_type,
                            values_from = n_cases,
                            values_fill = 0) |>
-        dplyr::mutate(total = sum(PCR, RAT, na.rm = TRUE))
+        dplyr::mutate(total = sum(PCR, RAT, na.rm = TRUE)) |>
+        dplyr::mutate(prop_PCR = PCR/total) |>
+        dplyr::mutate(prop_RAT = 1- prop_PCR)
 
     n_cases_line_list
 
