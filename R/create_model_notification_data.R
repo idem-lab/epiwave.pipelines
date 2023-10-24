@@ -30,7 +30,20 @@ create_model_notification_data <- function(
     timevarying_proportion[obs_data_idx,] <- timevarying_proportion[obs_data_idx,] * case_type_proportion
 
     # get day of week index
-    dweek <- lubridate::wday(observable_infection_dates)
+    # AVOID lubridate for namespace issues
+    #dweek <- weekdays(observable_infection_dates)
+    # dweek <- as.integer(
+    #     factor(
+    #     dweek,
+    #     levels = c("Monday",
+    #                "Tuesday",
+    #                "Wednesday",
+    #                "Thursday",
+    #                "Friday",
+    #                "Saturday",
+    #                "Sunday")
+    #     )
+    # )
 
     # prior for dweek correction
     dow_alpha <- greta::normal(1, 1, truncation = c(0, Inf), dim = c(1, 7))
@@ -38,10 +51,10 @@ create_model_notification_data <- function(
     # normalise multiplier to average to 1
     dow_weights <- dow_dist * 7
     # match weight to date by state matrix
-    dow_correction <- t(dow_weights[,dweek])
+    #dow_correction <- t(dow_weights[,dweek])
 
     # update proportion arg with dweek correction
-    timevarying_proportion <- timevarying_proportion * dow_correction
+    #timevarying_proportion <- timevarying_proportion * dow_correction
 
     # build convolution matrix
     n_days_infection_observable <- length(observable_infection_idx)
