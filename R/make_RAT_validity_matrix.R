@@ -16,11 +16,11 @@ make_RAT_validity_matrix <- function(RAT_matrix) {
     RAT_valid_mat[] <- TRUE
     RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-06-30"),
                   colnames(RAT_valid_mat) == "VIC"] <- FALSE
-    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-09-01"),
+    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-08-31"),
                   colnames(RAT_valid_mat) == "QLD"] <- FALSE
-    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-10-01"),
+    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-09-30"),
                   colnames(RAT_valid_mat) == "NSW"] <- FALSE
-    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-10-09"),
+    RAT_valid_mat[as.Date(rownames(RAT_valid_mat)) > as.Date("2023-10-08"),
                   colnames(RAT_valid_mat) == "WA"] <- FALSE
 
     #coerce to boolean
