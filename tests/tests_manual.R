@@ -37,12 +37,13 @@ RAT_prop_matrix <- pivot_test_type_prop_to_wide_matrix(
   local_summary, 'prop_RAT', target_dates)
 
 
+PCR_valid_mat <- PCR_prop_matrix > 0
 # make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
-
 # condition date validity on at least 1 case being reported
-PCR_valid_mat <- PCR_prop_matrix > 0
 RAT_valid_mat <- RAT_valid_mat & RAT_prop_matrix > 0
+
+
 
 
 
@@ -62,8 +63,8 @@ incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
 ## static delays
 ECDF_delay_constant_PCR <- readRDS("data/ECDF_delay_constant_PCR.rds")
 delay_dist_mat_PCR <- prepare_delay_input(
-        target_dates, jurisdictions,
-        constant_delay = list(ECDF_delay_constant_PCR))
+    target_dates, jurisdictions,
+    constant_delay = list(ECDF_delay_constant_PCR))
 
 ECDF_delay_constant_RAT <- readRDS("data/ECDF_delay_constant_RAT.rds")
 delay_dist_mat_RAT <- prepare_delay_input(
