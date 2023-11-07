@@ -7,55 +7,23 @@ create_model_notification_data <- function(
         observed_data,
         model_likelihood = 'negative_binomial',
         valid_mat = 1,
-        dataID,
-        case_type_proportion = 1) {
+        dataID) {
 
     n_days_infection <- nrow(infections_timeseries)
     n_jurisdictions <- ncol(infections_timeseries)
 
     # get indices for subset of infection days that end up in observed/forecast data
     observable_infection_idx <- which(full_infection_dates %in% observable_infection_dates)
+
     # subset infection timeseries to these indices
-    infection_observable <- infections_timeseries[observable_infection_idx,]
     # note this is the number of infection days that get observed in the observed
     # data, it is not the same length as the actual number of observed dates in
     # notification series, which is below
+    infection_observable <- infections_timeseries[observable_infection_idx,]
 
     # observed days in the obs data itself
     # basically this backs out extra left and right days
     obs_data_idx <- which(observable_infection_dates %in% as.Date(rownames(observed_data)))
-
-    # update proportion arg with type proportion
-    case_type_proportion <- pmax(case_type_proportion,1e-3)
-    timevarying_proportion[obs_data_idx,] <- timevarying_proportion[obs_data_idx,] * case_type_proportion
-
-    # get day of week index
-    # favour base approach over lubridate for manual declaration of factor level
-    # so that we know which index is which day of the week
-    dweek <- weekdays(observable_infection_dates)
-    dweek <- as.integer(
-        factor(
-        dweek,
-        levels = c("Monday",
-                   "Tuesday",
-                   "Wednesday",
-                   "Thursday",
-                   "Friday",
-                   "Saturday",
-                   "Sunday")
-        )
-    )
-
-    # prior for dweek correction
-    dow_alpha <- greta::normal(1, 1, truncation = c(0, Inf), dim = c(1, 7))
-    dow_dist <- greta::dirichlet(dow_alpha, n_realisations = n_jurisdictions)
-    # normalise multiplier to average to 1
-    dow_weights <- dow_dist * 7
-    # match weight to date by state matrix
-    dow_correction <- t(dow_weights[,dweek])
-
-    # update proportion arg with dweek correction
-    timevarying_proportion_dow <- timevarying_proportion * dow_correction
 
     # build convolution matrix
     n_days_infection_observable <- length(observable_infection_idx)
@@ -64,23 +32,22 @@ create_model_notification_data <- function(
         get_convolution_matrix(timevarying_delay_dist_ext[, x],
                                n_days_infection_observable))
 
-
     # compute expected cases of the same length
     # note not all of these dates would have been observed
     expected_cases <- do.call(
         cbind,
         lapply(1:n_jurisdictions, function(x) {
             convolution_matrices[[x]] %*% infection_observable[, x] *
-                timevarying_proportion_dow[, x]
+                timevarying_proportion[, x]
         }))
 
     # define likelihood
     if (model_likelihood == 'negative_binomial') {
 
-        # #use validity matrix - default is all valid but can use this to nullify
-        # #expected mean cases for dates when reporting is stopped
-        # #extend the valid mat to include forecast days by repeating the last row
-        # #this ensures for states where data collection has stopped, the forecast is also 0
+        # use validity matrix - default is all valid but can use this to nullify
+        # expected mean cases for dates when reporting is stopped
+        # extend the valid mat to include forecast days by repeating the last row
+        # this ensures for states where data collection has stopped, the forecast is also 0
 
         if (!is.matrix(valid_mat)) {
 
@@ -115,7 +82,6 @@ create_model_notification_data <- function(
     }
 
     greta_arrays <- list(
-        dow_weights,
         size,
         prob,
         observed_data_array,
@@ -123,7 +89,6 @@ create_model_notification_data <- function(
     )
 
     names(greta_arrays) <- c(
-        paste0(dataID, '_dow_weights'),
         paste0(dataID, '_size'),
         paste0(dataID, '_prob'),
         paste0(dataID, '_observed_data_array'),

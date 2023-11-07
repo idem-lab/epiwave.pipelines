@@ -1,3 +1,5 @@
+# data usually pertains to behaviour around symptoms. make sure clear
+# to user that CAR data should be related to notification not infection
 
 prepare_ascertainment_input <- function(
         dates, jurisdictions,
@@ -14,7 +16,6 @@ prepare_ascertainment_input <- function(
         stop("Provide either a constant ascertainment value or ascertainment
              estimate")
     }
-
     if (!is.null(constant_ascertainment)) {
 
         warning("Warning: using a constant assumed ascertainment value
@@ -25,14 +26,12 @@ prepare_ascertainment_input <- function(
                                       ncol = length(jurisdictions),
                                       dimnames = list(as.character(dates),
                                                       jurisdictions))
-
         if (!is.null(ascertainment_estimate)) {
 
             warning("Warning: ascertainment estimates provided but overriden by
                 assumed constant ascertainment")
         }
     }
-
     if (!is.null(ascertainment_estimate) &
         is.null(constant_ascertainment)) {
 

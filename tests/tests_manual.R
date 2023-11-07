@@ -9,23 +9,24 @@ R.utils::sourceDirectory('R/')
 
 module <- greta::.internals$utils$misc$module
 
-linelist_file <- "data-raw/linelist_processed_2023_09_21.rds"
+linelist_file <- "data-raw/processed_linelist_20231102.rds"
 linelist <- readRDS(linelist_file)
 
 local_summary <- summarise_linelist(linelist,
                                     import_status_option = 'local')
 
-# make target dates for end of RAT dates
+# make target dates
 target_dates <- as.character(
-                  seq.Date(as.Date("2023-05-01"),
-                         as.Date("2023-09-21"),
+                  seq.Date(as.Date("2023-07-01"),
+                         as.Date("2023-11-01"),
                          by = "day"))
+jurisdictions <- unique(local_summary$state)
 
+
+
+# generic workflow from here
 PCR_matrix <- pivot_datesum_to_wide_matrix(
-    local_summary, 'PCR', target_dates)
-
-# state names --- make sure consistent with column ordering
-jurisdictions <- colnames(PCR_matrix)
+    local_summary, 'PCR', target_dates, jurisdictions)
 RAT_matrix <- pivot_datesum_to_wide_matrix(
     local_summary, 'RAT', target_dates, jurisdictions)
 
@@ -36,7 +37,7 @@ RAT_prop_matrix <- pivot_test_type_prop_to_wide_matrix(
   local_summary, 'prop_RAT', target_dates)
 
 
-#make a valid check matrix for switching off RAT dates
+# make a valid check matrix for switching off RAT dates
 RAT_valid_mat <- make_RAT_validity_matrix(RAT_matrix)
 
 # condition date validity on at least 1 case being reported
@@ -86,6 +87,7 @@ RAT_notification_delay_distribution <- extend_delay_mat(
     RAT_infection_days,
     incubation_period)
 
+# CAR is non optional
 timevarying_CAR_PCR <- prepare_ascertainment_input(
   PCR_infection_days, jurisdictions,
   constant_ascertainment = 1,
@@ -95,6 +97,32 @@ timevarying_CAR_RAT <- prepare_ascertainment_input(
   RAT_infection_days, jurisdictions,
   constant_ascertainment = 1,
   test_type = "RAT")
+
+# dow is optional
+dow_correction_PCR <- create_dow_correction_objects(
+    PCR_infection_days,
+    n_jurisdictions,
+    dataID = 'pcr')
+
+dow_correction_RAT <- create_dow_correction_objects(
+    RAT_infection_days,
+    n_jurisdictions,
+    dataID = 'rat')
+
+# combine proportion objects
+timevarying_proportion_PCR <- prepare_proportion_correction(
+    target_dates,
+    PCR_infection_days,
+    timevarying_CAR_PCR,
+    PCR_prop_matrix,
+    dow_correction_PCR$pcr_dow_correction)
+
+timevarying_proportion_RAT <- prepare_proportion_correction(
+    target_dates,
+    RAT_infection_days,
+    timevarying_CAR_RAT,
+    RAT_prop_matrix,
+    dow_correction_RAT$rat_dow_correction)
 
 ############# above objects are all created based on input data, and does not
 ############# require the creation of an infection timeseries
@@ -116,9 +144,8 @@ PCR_notification_model_objects <- create_model_notification_data(
     full_infection_dates = days_infection,
     observable_infection_dates = PCR_infection_days,
     timevarying_delay_dist = PCR_notification_delay_distribution,
-    timevarying_proportion = timevarying_CAR_PCR,
+    timevarying_proportion = timevarying_proportion_PCR$timevarying_proportion,
     observed_data = PCR_matrix,
-    case_type_proportion = PCR_prop_matrix,
     valid_mat = PCR_valid_mat,
     dataID = 'pcr')
 
@@ -127,9 +154,8 @@ RAT_notification_model_objects <- create_model_notification_data(
     full_infection_dates = days_infection,
     observable_infection_dates = RAT_infection_days,
     timevarying_delay_dist = RAT_notification_delay_distribution,
-    timevarying_proportion = timevarying_CAR_RAT,
+    timevarying_proportion = timevarying_proportion_RAT$timevarying_proportion,
     observed_data = RAT_matrix,
-    case_type_proportion = RAT_prop_matrix,
     valid_mat = RAT_valid_mat,
     dataID = 'rat')
 
@@ -147,11 +173,12 @@ reff_model_objects <- estimate_reff(
     infections_timeseries = infection_model_objects$infections_timeseries,
     generation_interval_mass_fxns = generation_interval_distribution)
 
-combined_model_objects <- c(infection_model_objects,
+combined_model_objects <- c(timevarying_proportion_PCR,
+                            timevarying_proportion_RAT,
+                            infection_model_objects,
                             PCR_notification_model_objects,
                             RAT_notification_model_objects,
                             reff_model_objects)
-
 
 m <- model(combined_model_objects$infections_timeseries,
            combined_model_objects$reff)
@@ -170,11 +197,11 @@ fit <- fit_model(model = m,
 
 # infection completion probability matrices
 PCR_infection_completion_prob_mat <- create_infection_compl_mat(
-    PCR_notification_model_objects$convolution_matrices,
+    PCR_notification_model_objects$pcr_convolution_matrices,
     jurisdictions)
 
 RAT_infection_completion_prob_mat <- create_infection_compl_mat(
-    RAT_notification_model_objects$convolution_matrices,
+    RAT_notification_model_objects$rat_convolution_matrices,
     jurisdictions)
 
 # #check convergence
@@ -182,8 +209,8 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
 
 
 case_sims_RAT <- calculate(combined_model_objects$rat_observed_data_array,
-                       values = fit,
-                       nsim = 1000)
+                           values = fit,
+                           nsim = 1000)
 
 plot_timeseries_sims(case_sims_RAT[[1]],
                      type = "notification",
@@ -197,8 +224,8 @@ plot_timeseries_sims(case_sims_RAT[[1]],
                                      "count" = RAT))
 
 case_sims_PCR <- calculate(combined_model_objects$pcr_observed_data_array,
-                       values = fit,
-                       nsim = 1000)
+                           values = fit,
+                           nsim = 1000)
 
 plot_timeseries_sims(case_sims_PCR[[1]],
                      type = "notification",
@@ -212,8 +239,8 @@ plot_timeseries_sims(case_sims_PCR[[1]],
                                      "count" = PCR))
 
 infection_sims <- calculate(combined_model_objects$infections_timeseries,
-                       values = fit,
-                       nsim = 1000)
+                            values = fit,
+                            nsim = 1000)
 
 plot_timeseries_sims(infection_sims[[1]],
                      type = "infection",
@@ -226,8 +253,8 @@ plot_timeseries_sims(infection_sims[[1]],
                                      "count" = total))
 
 reff_sims <- calculate(combined_model_objects$reff,
-                            values = fit,
-                            nsim = 1000)
+                       values = fit,
+                       nsim = 1000)
 
 plot_timeseries_sims(reff_sims[[1]],
                      type = "reff",
