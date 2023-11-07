@@ -114,6 +114,7 @@ get_CAR_from_surveys <- function(dates,
                                   state == "VIC" & date > as.Date('2023-06-30') ~ 0.00,
                                   state == "QLD" & date > as.Date('2023-08-31') ~ 0.00,
                                   state == "NSW" & date > as.Date('2023-09-30') ~ 0.00,
+                                  state == "WA" & date > as.Date("2023-10-08") ~ 0.00,
                                   TRUE ~ test_prob_given_infection))
     }
 
