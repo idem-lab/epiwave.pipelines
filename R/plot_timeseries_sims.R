@@ -37,8 +37,10 @@ plot_timeseries_sims <- function(
     start_date = max(dates) - lubridate::dmonths(1),
     end_date = max(dates),
     case_validation_data = NULL,
+    infection_nowcast = TRUE,
     case_forecast = FALSE,
     valid_mat = NULL,
+    nowcast_start = NULL,
     dim_sim = c("1","2")
 ) {
     #check type to plot
@@ -228,11 +230,11 @@ plot_timeseries_sims <- function(
                                          hjust = x_text_hjust,
                                          vjust = x_text_vjust)
         )
-    #grey box for projection
-    if (case_forecast) {
-        p <- p +   ggplot2::geom_vline(xintercept = projection_at, linetype = "dashed", colour = "grey60") +
+    #grey box for nowcast
+    if (infection_nowcast) {
+        p <- p +   ggplot2::geom_vline(xintercept = nowcast_start, linetype = "dashed", colour = "grey60") +
             ggplot2::annotate("rect",
-                     xmin = projection_at,
+                     xmin = nowcast_start,
                      xmax = max(df$date),
                      ymin = -Inf,
                      ymax = Inf,
