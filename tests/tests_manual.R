@@ -209,6 +209,9 @@ RAT_infection_completion_prob_mat <- create_infection_compl_mat(
   jurisdictions = jurisdictions,
   timevarying_delay_dist_ext = RAT_notification_delay_distribution)
 
+# get nowcast start date
+nowcast_start <- as.Date(rownames(PCR_infection_completion_prob_mat)[min(which(PCR_infection_completion_prob_mat < 0.95))])
+
 # #check convergence
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
 
@@ -253,9 +256,8 @@ plot_timeseries_sims(infection_sims[[1]],
                      start_date = as.Date(rownames(PCR_matrix)[1]),
                      states = jurisdictions,
                      dim_sim = "2",
-                     case_validation_data = local_summary |>
-                       dplyr::rename("date" = date_confirmation,
-                                     "count" = total))
+                     infection_nowcast = TRUE,
+                     nowcast_start = nowcast_start)
 
 reff_sims <- calculate(combined_model_objects$reff,
                        values = fit,
@@ -266,7 +268,9 @@ plot_timeseries_sims(reff_sims[[1]],
                      dates = days_infection,
                      start_date = as.Date(rownames(PCR_matrix)[1]),
                      end_date = as.Date(rownames(PCR_matrix)[nrow(PCR_matrix)]),
-                     states = jurisdictions, dim_sim = "2")
+                     states = jurisdictions, dim_sim = "2",
+                     infection_nowcast = TRUE,
+                     nowcast_start = nowcast_start)
 
 
 calculate(combined_model_objects$gp_lengthscale,
