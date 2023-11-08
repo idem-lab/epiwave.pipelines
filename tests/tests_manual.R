@@ -170,12 +170,16 @@ fit <- fit_model(model = m,
 
 # infection completion probability matrices
 PCR_infection_completion_prob_mat <- create_infection_compl_mat(
-    PCR_notification_model_objects$convolution_matrices,
-    jurisdictions)
+  observable_infection_dates = PCR_infection_days,
+  target_dates = target_dates,
+  jurisdictions = jurisdictions,
+  timevarying_delay_dist_ext = PCR_notification_delay_distribution)
 
 RAT_infection_completion_prob_mat <- create_infection_compl_mat(
-    RAT_notification_model_objects$convolution_matrices,
-    jurisdictions)
+  observable_infection_dates = RAT_infection_days,
+  target_dates = target_dates,
+  jurisdictions = jurisdictions,
+  timevarying_delay_dist_ext = RAT_notification_delay_distribution)
 
 # #check convergence
 # coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)$psrf[, 1]
