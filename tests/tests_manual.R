@@ -9,20 +9,10 @@ R.utils::sourceDirectory('R/')
 
 module <- greta::.internals$utils$misc$module
 
-linelist_file <- "data-raw/processed_linelist_20231102.rds"
-linelist <- readRDS(linelist_file)
+#get latest linelist file and target dates. Currently have to manually specify. Create local summary file
+source("R/get_linelist_and_target_dates.R")
 
-local_summary <- summarise_linelist(linelist,
-                                    import_status_option = 'local')
-
-# make target dates
-target_dates <- as.character(
-                  seq.Date(as.Date("2023-07-01"),
-                         as.Date("2023-11-01"),
-                         by = "day"))
 jurisdictions <- unique(local_summary$state)
-
-
 
 # generic workflow from here
 PCR_matrix <- pivot_datesum_to_wide_matrix(
@@ -112,14 +102,14 @@ dow_correction_RAT <- create_dow_correction_objects(
 
 # combine proportion objects
 timevarying_proportion_PCR <- prepare_proportion_correction(
-    target_dates,
+    as.Date(target_dates),
     PCR_infection_days,
     timevarying_CAR_PCR,
     PCR_prop_matrix,
     dow_correction_PCR$pcr_dow_correction)
 
 timevarying_proportion_RAT <- prepare_proportion_correction(
-    target_dates,
+    as.Date(target_dates),
     RAT_infection_days,
     timevarying_CAR_RAT,
     RAT_prop_matrix,
@@ -229,7 +219,8 @@ plot_timeseries_sims(case_sims_RAT[[1]],
                      dim = "1",
                      case_validation_data = local_summary |>
                        dplyr::rename("date" = date_confirmation,
-                                     "count" = RAT))
+                                     "count" = RAT),
+                     nowcast_start = as.Date("2023-11-30")) #set to future date for now so code works
 
 case_sims_PCR <- calculate(combined_model_objects$pcr_observed_data_array,
                            values = fit,
@@ -244,7 +235,8 @@ plot_timeseries_sims(case_sims_PCR[[1]],
                      dim = "1",
                      case_validation_data = local_summary |>
                        dplyr::rename("date" = date_confirmation,
-                                     "count" = PCR))
+                                     "count" = PCR),
+                     nowcast_start = as.Date("2023-11-30")) #set to future date for now so code works
 
 infection_sims <- calculate(combined_model_objects$infections_timeseries,
                             values = fit,
