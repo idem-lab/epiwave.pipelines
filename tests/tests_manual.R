@@ -9,17 +9,11 @@ R.utils::sourceDirectory('R/')
 
 module <- greta::.internals$utils$misc$module
 
-linelist_file <- "data-raw/processed_linelist_20231102.RDS"
-linelist <- readRDS(linelist_file)
 
-local_summary <- summarise_linelist(linelist,
-                                    import_status_option = 'local')
+#get latest linelist file and target dates. Currently have to manually specify. Create local summary file
+source("R/get_linelist_and_target_dates.R")
 
-# make target dates
-target_dates <- as.character(
-                  seq.Date(as.Date("2023-07-01"),
-                         as.Date("2023-11-01"),
-                         by = "day"))
+
 jurisdictions <- unique(local_summary$state)
 
 # generic workflow from here
@@ -105,7 +99,7 @@ timevarying_proportion_PCR <- prepare_proportion_correction(
     dow_correction_PCR$pcr_dow_correction)
 
 timevarying_proportion_RAT <- prepare_proportion_correction(
-  as.Date(target_dates),
+    as.Date(target_dates),
     RAT_infection_days,
     timevarying_CAR_RAT,
     case_data_diagnostic_output$RAT_prop_matrix,
