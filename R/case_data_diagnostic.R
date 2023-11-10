@@ -1,6 +1,8 @@
 case_data_diagnostic <- function(summarised_case_data,
                                  target_dates,
-                                 smoothing = TRUE) {
+                                 smoothing = c("kernel","wmean","gam")) {
+
+    smoothing <- match.arg(smoothing)
     # get test type proportion matrices
     PCR_prop_matrix <- pivot_test_type_prop_to_wide_matrix(
         summarised_case_data, 'prop_PCR', target_dates)
@@ -22,13 +24,6 @@ case_data_diagnostic <- function(summarised_case_data,
     RAT_prop_matrix[!RAT_valid_mat | !PCR_valid_mat] <- NA
     # do the same for PCR
     PCR_prop_matrix[!RAT_valid_mat | !PCR_valid_mat] <- NA
-
-    # clamp proportion and hold as constant for end of RAT reporting. This
-    # ensures we don't extrapolate something crazy for PCR proportion for this
-    # period, thus creating spikes in infection inference.
-    # use zoo package for carrying forward last obs to replace NAs
-    PCR_prop_matrix <- zoo::na.locf(PCR_prop_matrix)
-    RAT_prop_matrix <- zoo::na.locf(RAT_prop_matrix)
 
     # if any column of prop matrix is entirely NA (because RAT had been entirely
     # switched off for this period), this wouldn't work, we need to manually
@@ -54,15 +49,8 @@ case_data_diagnostic <- function(summarised_case_data,
                                  } # the sum condition checks if the column is all NA
                              })
 
-    # get rid of any remaing NAs in the middle of proportion
-    PCR_prop_matrix <- zoo::na.approx(PCR_prop_matrix)
-    RAT_prop_matrix <- zoo::na.approx(RAT_prop_matrix)
-
-    # get rid of any remaing NAs at the start of proportion
-    PCR_prop_matrix <- zoo::na.locf(PCR_prop_matrix,fromLast = TRUE)
-    RAT_prop_matrix <- zoo::na.locf(RAT_prop_matrix,fromLast = TRUE)
-
-    if (smoothing) {
+    # apply smoothing
+    if (smoothing == "kernel") {
         # smooth through the proportion. this applies a generic Gaussian kernel smoothing
         # for each column of the proportion matrices
         RAT_prop_matrix <- apply(RAT_prop_matrix,2,
@@ -78,16 +66,84 @@ case_data_diagnostic <- function(summarised_case_data,
                                      ksmooth(t_idx,x,"normal",5)$y
                                  })
 
-        # NOTE WELL that all these smoothing and na replacement operations
-        # produces a lot of INFERRED test type proportion corrections for the
-        # case data. All of these are to help with stability of the inferred
-        # infection trajectory, but they will NOT allow you to precisely
-        # reconstruct the observed case time series using the inferred and
-        # smoothed proportions, so don't freak out if case matrix / proportion
-        # matrix does not give you the same answer as the observed total number
-        # of cases combined between the two test types.
+    } else if (smoothing == "wmean") {
+
+        # get unique week index
+        week_indx <- lubridate::week(target_dates) |>
+            as.factor() |>
+            as.integer()
+
+        # for each column of the proportion matrices
+        RAT_prop_matrix <- apply(RAT_prop_matrix,2,
+                                 FUN = function(x){
+                                     tapply(x, week_indx,
+                                            FUN = function(y) rep(mean(y, na.rm = TRUE), length(y))
+                                     ) |> unlist()
+                                 })
+
+        # do the smoothing for PCR
+        PCR_prop_matrix <- apply(PCR_prop_matrix,2,
+                                 FUN = function(x){
+                                     tapply(x, week_indx,
+                                            FUN = function(y) rep(mean(y, na.rm = TRUE), length(y))
+                                     ) |> unlist()
+                                 })
+        # now apply smoothing
+        RAT_prop_matrix <- apply(RAT_prop_matrix,2,
+                                 FUN = function(x){
+                                     t_idx <- time(x)
+                                     ksmooth(t_idx,x,"normal",5)$y
+                                 })
+
+        # do the smoothing for PCR
+        PCR_prop_matrix <- apply(PCR_prop_matrix,2,
+                                 FUN = function(x){
+                                     t_idx <- time(x)
+                                     ksmooth(t_idx,x,"normal",5)$y
+                                 })
+
+    } else if (smoothing == "gam") {
+        RAT_prop_matrix <- apply(RAT_prop_matrix,2,
+                                 FUN = function(x){
+                                     t_idx <- time(x)
+                                     mod <- mgcv::gam(x ~ s(t_idx),
+                                                      family = "binomial")
+                                     predict(mod,newdata = list(t_idx = t_idx), type = "response")
+                                 })
+
+        # do the smoothing for PCR
+        PCR_prop_matrix <- apply(PCR_prop_matrix,2,
+                                 FUN = function(x){
+                                     t_idx <- time(x)
+                                     mod <- mgcv::gam(x ~ s(t_idx),
+                                                      family = "binomial")
+                                     predict(mod,newdata = list(t_idx = t_idx), type = "response")
+                                 })
     }
 
+    # clamp proportion and hold as constant for end of RAT reporting. This
+    # ensures we don't extrapolate something crazy for PCR proportion for this
+    # period, thus creating spikes in infection inference.
+    # use zoo package for carrying forward last obs to replace NAs
+    PCR_prop_matrix <- zoo::na.locf(PCR_prop_matrix)
+    RAT_prop_matrix <- zoo::na.locf(RAT_prop_matrix)
+
+    # get rid of any remaing NAs in the middle of proportion
+    PCR_prop_matrix <- zoo::na.approx(PCR_prop_matrix)
+    RAT_prop_matrix <- zoo::na.approx(RAT_prop_matrix)
+
+    # get rid of any remaing NAs at the start of proportion
+    PCR_prop_matrix <- zoo::na.locf(PCR_prop_matrix,fromLast = TRUE)
+    RAT_prop_matrix <- zoo::na.locf(RAT_prop_matrix,fromLast = TRUE)
+
+    # NOTE WELL that all these smoothing and na replacement operations
+    # produces a lot of INFERRED test type proportion corrections for the
+    # case data. All of these are to help with stability of the inferred
+    # infection trajectory, but they will NOT allow you to precisely
+    # reconstruct the observed case time series using the inferred and
+    # smoothed proportions, so don't freak out if case matrix / proportion
+    # matrix does not give you the same answer as the observed total number
+    # of cases combined between the two test types.
 
     module(PCR_valid_mat,
            RAT_valid_mat,
