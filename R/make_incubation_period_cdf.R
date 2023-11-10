@@ -21,15 +21,12 @@ make_incubation_period_cdf <- function(
     strain <- match.arg(strain)
 
     if (strain == "Omicron") {
-
+        # parameters estimated from
+        # https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2022.27.6.2200042
         days <- 0:28
         cum_density <- pweibull(days,shape = 1.5,scale = 3.6)
-        # replaced these with a better one now
-        # prob <- c(0.05, 0.5, 0.95)
-        # estimate <- c(2.88, 3.42, 3.96)
     }
 
     cdf <- approxfun(days,cum_density)
-    #cdf <- make_ecdf(prob, estimate)
     return(cdf)
 }
