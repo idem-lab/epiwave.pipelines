@@ -190,7 +190,7 @@ fit <- fit_model(model = m,
                  max_convergence_tries = 1,
                  warmup = 1000,
                  init_n_samples = 1000,
-                 iterations_per_step = 1000) # this doesn't feel like it needs to be user defined?
+                 iterations_per_step = 1000)
 
 
 
