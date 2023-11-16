@@ -32,7 +32,8 @@
 #' @examples
 #'
 
-
+library(ggdist)
+library(ggplot2)
 
 p <- plot_interval_curves(reff_sims[[1]],
                      dates = days_infection,
@@ -50,10 +51,6 @@ plot_interval_curves <- function(
 
     cat('plotting instanteneous reproduction number by infection date!')
     ylab_name <- expression(R['eff']~from~'locally-acquired'~cases)
-    # ribbon_colour <- RColorBrewer::brewer.pal(8, 'Set2')[1]
-
-    ### HERE
-    #calculate mean and CI values for ribbon plot
 
     dates_df <- data.frame(ymd = dates,
                            date = as.character(1:length(dates)))
@@ -62,12 +59,9 @@ plot_interval_curves <- function(
                                 function (x) {
                                     dat <- simulations[ , -(1:5), x] |>
                                         as.data.frame() |>
-                                        dplyr::mutate(.draw = row_number(),
+                                        dplyr::mutate(.draw = dplyr::row_number(),
                                                       jur = as.factor(jurisdictions[x]))
                                 })) |>
-        # df <- simulations[,-(1:5),1] |>
-        # as.data.frame() |>
-        # dplyr::mutate(.draw = row_number()) |>
         tidyr::pivot_longer(-c(.draw, jur),
                             names_to = 'date',
                             values_to = 'reff') |>
@@ -95,7 +89,7 @@ plot_interval_curves <- function(
     p <- ggplot(aes(x = ymd, y = reff), data = df2) +
         geom_lineribbon(aes(ymin = .lower, ymax = .upper, group = 1),
                         linewidth = .5) +
-        # geom_line(aes(group = .draw), alpha = 0.005, data = df) +
+        geom_line(aes(group = .draw), alpha = 0.005, data = df) +
         scale_fill_brewer() +
         theme_ggdist() +
         ggplot2::scale_y_continuous(name = ylab_name) +
@@ -118,7 +112,7 @@ dates_df <- data.frame(ymd = days_infection,
 
 df <- reff_sims[[1]][,-(1:5),1] |>
     as.data.frame() |>
-    dplyr::mutate(.draw = row_number(),
+    dplyr::mutate(.draw = dplyr::row_number(),
                   jur = 'SA') |>
     tidyr::pivot_longer(-c(.draw, jur),
                         names_to = 'date',
