@@ -29,7 +29,7 @@ case_data_diagnostic_output <- case_data_diagnostic(local_summary,
 
 n_jurisdictions <- length(jurisdictions)
 
-incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
+incubation_period <- make_incubation_period_cdf(strain = "Omicron")
 
 ## timevarying delays
 # delay_dist_mat_PCR <- prepare_delay_input(
@@ -57,13 +57,13 @@ delay_dist_mat_RAT <- prepare_delay_input(
 
 ## delay distribution
 PCR_infection_days <- calculate_days_infection(delay_dist_mat_PCR)
-PCR_notification_delay_distribution <- extend_delay_mat(
+PCR_notification_delay_distribution <- lowerGPreff::extend_delay_data(
     delay_dist_mat_PCR,
     PCR_infection_days,
     incubation_period)
 
 RAT_infection_days <- calculate_days_infection(delay_dist_mat_RAT)
-RAT_notification_delay_distribution <- extend_delay_mat(
+RAT_notification_delay_distribution <- lowerGPreff::extend_delay_data(
     delay_dist_mat_RAT,
     RAT_infection_days,
     incubation_period)
@@ -124,7 +124,8 @@ PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = PCR_infection_days,
-    timevarying_delay_dist = PCR_notification_delay_distribution,
+    timevarying_delay_dist = delay_dist_mat_PCR,
+    incubation_period = incubation_period,
     timevarying_proportion = timevarying_proportion_PCR$timevarying_proportion,
     observed_data = PCR_matrix,
     valid_mat = case_data_diagnostic_output$PCR_valid_mat,
@@ -134,7 +135,8 @@ RAT_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = RAT_infection_days,
-    timevarying_delay_dist = RAT_notification_delay_distribution,
+    timevarying_delay_dist = delay_dist_mat_RAT,
+    incubation_period = incubation_period,
     timevarying_proportion = timevarying_proportion_RAT$timevarying_proportion,
     observed_data = RAT_matrix,
     valid_mat = case_data_diagnostic_output$RAT_valid_mat,

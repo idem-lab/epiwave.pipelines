@@ -2,7 +2,8 @@ create_model_notification_data <- function(
         infections_timeseries,
         full_infection_dates,
         observable_infection_dates,
-        timevarying_delay_dist_ext,
+        timevarying_delay_dist,
+        incubation_period,
         timevarying_proportion,
         observed_data,
         model_likelihood = 'negative_binomial',
@@ -28,8 +29,13 @@ create_model_notification_data <- function(
     # build convolution matrix
     n_days_infection_observable <- length(observable_infection_idx)
 
+    delays_with_incubation <- lowerGPreff::extend_delay_data(
+        timevarying_delay_dist,
+        observable_infection_dates,
+        incubation_period)
+
     convolution_matrices <- lapply(1:n_jurisdictions, function(x)
-        get_convolution_matrix(timevarying_delay_dist_ext[, x],
+        get_convolution_matrix(delays_with_incubation[, x],
                                n_days_infection_observable))
 
     # compute expected cases of the same length
