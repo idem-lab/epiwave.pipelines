@@ -29,7 +29,7 @@ case_data_diagnostic_output <- case_data_diagnostic(local_summary,
 
 n_jurisdictions <- length(jurisdictions)
 
-incubation_period <- make_incubation_period_cdf(strain = "Omicron")
+incubation_period <- lowerGPreff::make_incubation_period_cdf(strain = "Omicron")
 
 ## timevarying delays
 # delay_dist_mat_PCR <- prepare_delay_input(
@@ -122,7 +122,7 @@ infection_model_objects <- lowerGPreff::create_infection_timeseries(
     effect_type = 'growth_rate')
 
 PCR_notification_model_objects <- create_model_notification_data(
-    infections_timeseries = infection_model_objects$infections_timeseries,
+    infections_timeseries = infection_model_objects$infection_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = PCR_infection_days,
     timevarying_delay_dist = delay_dist_mat_PCR,
@@ -133,7 +133,7 @@ PCR_notification_model_objects <- create_model_notification_data(
     dataID = 'pcr')
 
 RAT_notification_model_objects <- create_model_notification_data(
-    infections_timeseries = infection_model_objects$infections_timeseries,
+    infections_timeseries = infection_model_objects$infection_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = RAT_infection_days,
     timevarying_delay_dist = delay_dist_mat_RAT,
@@ -150,12 +150,12 @@ nishiura_samples <- readr::read_csv(
     col_types = readr::cols(param1 = readr::col_double(),
                             param2 = readr::col_double()))
 
-generation_interval_distribution <- make_generation_interval_density(
+generation_interval_distribution <- lowerGPreff::make_generation_interval_density(
     nishiura_samples)
 
 reff_model_objects <- estimate_reff(
-    infections_timeseries = infection_model_objects$infections_timeseries,
-    generation_interval_mass_fxns = generation_interval_distribution)
+    infection_model_objects$infection_timeseries,
+    generation_interval_distribution)
 
 combined_model_objects <- c(timevarying_proportion_PCR,
                             timevarying_proportion_RAT,
