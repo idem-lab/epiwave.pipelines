@@ -116,9 +116,10 @@ days_infection <- seq.Date(min(PCR_infection_days,
 
 n_days_infection <- length(days_infection)
 
-infection_model_objects <- create_infection_timeseries(
+infection_model_objects <- lowerGPreff::create_infection_timeseries(
+    n_days_infection,
     n_jurisdictions,
-    n_days_infection)
+    effect_type = 'growth_rate')
 
 PCR_notification_model_objects <- create_model_notification_data(
     infections_timeseries = infection_model_objects$infections_timeseries,
