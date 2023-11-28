@@ -80,15 +80,15 @@ timevarying_CAR_RAT <- prepare_ascertainment_input(
   test_type = "RAT")
 
 # dow is optional
-dow_correction_PCR <- create_dow_correction_objects(
+dow_correction_PCR <- lowerGPreff::create_dow_correction_arrays(
     PCR_infection_days,
     n_jurisdictions,
-    dataID = 'pcr')
+    data_id = 'pcr')
 
-dow_correction_RAT <- create_dow_correction_objects(
+dow_correction_RAT <- lowerGPreff::create_dow_correction_arrays(
     RAT_infection_days,
     n_jurisdictions,
-    dataID = 'rat')
+    data_id = 'rat')
 
 # combine proportion objects
 timevarying_proportion_PCR <- prepare_proportion_correction(
