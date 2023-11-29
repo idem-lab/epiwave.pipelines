@@ -80,13 +80,11 @@ timevarying_CAR_RAT <- prepare_ascertainment_input(
   test_type = "RAT")
 
 # dow is optional
-dow_correction_PCR <- lowerGPreff::create_dow_correction_arrays(
-    PCR_infection_days,
+dow_model_PCR <- lowerGPreff::create_dow_correction_arrays(
     n_jurisdictions,
     data_id = 'pcr')
 
-dow_correction_RAT <- lowerGPreff::create_dow_correction_arrays(
-    RAT_infection_days,
+dow_model_RAT <- lowerGPreff::create_dow_correction_arrays(
     n_jurisdictions,
     data_id = 'rat')
 
@@ -153,7 +151,7 @@ nishiura_samples <- readr::read_csv(
 generation_interval_distribution <- lowerGPreff::make_generation_interval_density(
     nishiura_samples)
 
-reff_model_objects <- estimate_reff(
+reff_model_objects <- lowerGPreff::estimate_reff(
     infection_model_objects$infection_timeseries,
     generation_interval_distribution)
 
