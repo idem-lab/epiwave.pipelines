@@ -7,9 +7,6 @@ library(greta.dynamics)
 
 R.utils::sourceDirectory('R/')
 
-module <- greta::.internals$utils$misc$module
-
-
 #get latest linelist file and target dates. Currently have to manually specify. Create local summary file
 source("R/get_linelist_and_target_dates.R")
 
