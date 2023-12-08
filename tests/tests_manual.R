@@ -7,9 +7,6 @@ library(greta.dynamics)
 
 R.utils::sourceDirectory('R/')
 
-module <- greta::.internals$utils$misc$module
-
-
 #get latest linelist file and target dates. Currently have to manually specify. Create local summary file
 source("R/get_linelist_and_target_dates.R")
 
@@ -29,7 +26,7 @@ case_data_diagnostic_output <- case_data_diagnostic(local_summary,
 
 n_jurisdictions <- length(jurisdictions)
 
-incubation_period_distribution <- make_incubation_period_cdf(strain = "Omicron")
+incubation_period <- lowerGPreff::make_incubation_period_cdf(strain = "Omicron")
 
 ## timevarying delays
 # delay_dist_mat_PCR <- prepare_delay_input(
@@ -57,13 +54,13 @@ delay_dist_mat_RAT <- prepare_delay_input(
 
 ## delay distribution
 PCR_infection_days <- calculate_days_infection(delay_dist_mat_PCR)
-PCR_notification_delay_distribution <- extend_delay_mat(
+PCR_notification_delay_distribution <- lowerGPreff::extend_delay_data(
     delay_dist_mat_PCR,
     PCR_infection_days,
     incubation_period)
 
 RAT_infection_days <- calculate_days_infection(delay_dist_mat_RAT)
-RAT_notification_delay_distribution <- extend_delay_mat(
+RAT_notification_delay_distribution <- lowerGPreff::extend_delay_data(
     delay_dist_mat_RAT,
     RAT_infection_days,
     incubation_period)
@@ -80,15 +77,13 @@ timevarying_CAR_RAT <- prepare_ascertainment_input(
   test_type = "RAT")
 
 # dow is optional
-dow_correction_PCR <- create_dow_correction_objects(
-    PCR_infection_days,
+dow_model_PCR <- lowerGPreff::create_dow_correction_arrays(
     n_jurisdictions,
-    dataID = 'pcr')
+    data_id = 'pcr')
 
-dow_correction_RAT <- create_dow_correction_objects(
-    RAT_infection_days,
+dow_model_RAT <- lowerGPreff::create_dow_correction_arrays(
     n_jurisdictions,
-    dataID = 'rat')
+    data_id = 'rat')
 
 # combine proportion objects
 timevarying_proportion_PCR <- prepare_proportion_correction(
@@ -116,25 +111,28 @@ days_infection <- seq.Date(min(PCR_infection_days,
 
 n_days_infection <- length(days_infection)
 
-infection_model_objects <- create_infection_timeseries(
+infection_model_objects <- lowerGPreff::create_infection_timeseries(
+    n_days_infection,
     n_jurisdictions,
-    n_days_infection)
+    effect_type = 'growth_rate')
 
 PCR_notification_model_objects <- create_model_notification_data(
-    infections_timeseries = infection_model_objects$infections_timeseries,
+    infections_timeseries = infection_model_objects$infection_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = PCR_infection_days,
-    timevarying_delay_dist = PCR_notification_delay_distribution,
+    timevarying_delay_dist = delay_dist_mat_PCR,
+    incubation_period = incubation_period,
     timevarying_proportion = timevarying_proportion_PCR$timevarying_proportion,
     observed_data = PCR_matrix,
     valid_mat = case_data_diagnostic_output$PCR_valid_mat,
     dataID = 'pcr')
 
 RAT_notification_model_objects <- create_model_notification_data(
-    infections_timeseries = infection_model_objects$infections_timeseries,
+    infections_timeseries = infection_model_objects$infection_timeseries,
     full_infection_dates = days_infection,
     observable_infection_dates = RAT_infection_days,
-    timevarying_delay_dist = RAT_notification_delay_distribution,
+    timevarying_delay_dist = delay_dist_mat_RAT,
+    incubation_period = incubation_period,
     timevarying_proportion = timevarying_proportion_RAT$timevarying_proportion,
     observed_data = RAT_matrix,
     valid_mat = case_data_diagnostic_output$RAT_valid_mat,
@@ -147,12 +145,12 @@ nishiura_samples <- readr::read_csv(
     col_types = readr::cols(param1 = readr::col_double(),
                             param2 = readr::col_double()))
 
-generation_interval_distribution <- make_generation_interval_density(
+generation_interval_distribution <- lowerGPreff::make_generation_interval_density(
     nishiura_samples)
 
-reff_model_objects <- estimate_reff(
-    infections_timeseries = infection_model_objects$infections_timeseries,
-    generation_interval_mass_fxns = generation_interval_distribution)
+reff_model_objects <- lowerGPreff::estimate_reff(
+    infection_model_objects$infection_timeseries,
+    generation_interval_distribution)
 
 combined_model_objects <- c(timevarying_proportion_PCR,
                             timevarying_proportion_RAT,

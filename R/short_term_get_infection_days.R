@@ -1,3 +1,14 @@
+short_term_get_infection_days <- function (case_dat,
+                                           delay_dat) {
+
+    dates <- unique(case_dat$date)
+    jurisdictions <- unique(case_dat$jurisdiction)
+    delay_mat <- prepare_delay_input(
+        dates, jurisdictions,
+        constant_delay = list(delay_dat))
+    calculate_days_infection(delay_mat)
+
+}
 calculate_days_infection <- function (delay_matrix) {
 
     # extra_left is defined by the max notification delay at the start
