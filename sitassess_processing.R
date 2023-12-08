@@ -86,17 +86,6 @@ clean_pcr <- linelist_all_dates |>
 #     tibble::column_to_rownames(var = 'date_confirmation') |>
 #     data.frame()
 #
-# # CAR
-# # create sitassess car using the sitassess proportion instead of car script
-# # with the idea that in real use you would have the user essentially supply a CAR
-# # and they could elect to provide an alternative.
-# # timevarying_CAR <- matrix(constant_ascertainment,
-# #                           nrow = length(input_specific_infection_days),
-# #                           ncol = length(jurisdictions),
-# #                           dimnames = list(as.character(input_specific_infection_days),
-# #                                           jurisdictions))
-#
-#
 #
 # # delay_input <- estimate_delays_from_data(
 # #     delay_data, jurisdictions)
