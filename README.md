@@ -1,5 +1,7 @@
 # GPreff
 
+[![DOI](https://zenodo.org/badge/697624138.svg)](https://zenodo.org/doi/10.5281/zenodo.10400664)
+
 Repository for the new $R_eff$ model using Gaussian Processes with `greta`. This model is centered on estimation of the infection timeseries, from which $R_eff$ can be calculated when we add generation interval information.
 
 This workflow has separate components for PCR and RAT data, and estimates separately by jurisdiction, in this case Australian state.
