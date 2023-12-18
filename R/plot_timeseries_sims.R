@@ -294,7 +294,7 @@ plot_timeseries_sims <- function (
 
     }
 
-    png(filename)
+    pdf(filename, width = 10, height = 12)
     print(p)
     dev.off()
 

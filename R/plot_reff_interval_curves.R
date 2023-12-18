@@ -43,9 +43,12 @@ plot_reff_interval_curves <- function (filename,
         merge(dates_df)
 
     p <- ggplot2::ggplot(ggplot2::aes(x = ymd, y = val), data = df2) +
-        ggdist::geom_lineribbon(ggplot2::aes(ymin = .lower, ymax = .upper, group = 1),
-                                linewidth = .5) +
-        ggplot2::geom_line(aes(group = .draw), alpha = 0.005, data = df) +
+        ggdist::geom_lineribbon(ggplot2::aes(ymin = .lower,
+                                             ymax = .upper, group = 1),
+                                linewidth = 0.0000001,
+                                col = 'light grey') +
+        ggplot2::geom_line(ggplot2::aes(group = .draw),
+                           alpha = 0.002, data = df) +
         ggplot2::scale_fill_brewer() +
         ggdist::theme_ggdist() +
         ggplot2::scale_y_continuous(name = ylab_name) +
@@ -53,13 +56,13 @@ plot_reff_interval_curves <- function (filename,
         ggplot2::facet_wrap(~ jur, ncol = 2, scales = 'free') +
         ggplot2::scale_x_date(date_breaks = '1 week',
                               date_minor_breaks = '1 day',
-                              date_labels = '%d%b',
+                              date_labels = '%d %b',
                               limits = c(as.Date(start_date), end_date)) +
         ggplot2::geom_hline(yintercept = 1,
                             linetype = 'dotted',
                             colour = 'black')
 
-    png(filename)
+    pdf(filename, width = 10, height = 12)
     print(p)
     dev.off()
 
