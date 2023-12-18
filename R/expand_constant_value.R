@@ -20,7 +20,7 @@ expand_constant_value <- function (dates,
                                    constant_val,
                                    col_name) {
 
-    long_unique <- expand.grid(date = infection_days,
+    long_unique <- expand.grid(date = dates,
                                jurisdiction = jurisdictions)
     long_combined <- long_unique |>
         dplyr::mutate(!!col_name := constant_val) |>
