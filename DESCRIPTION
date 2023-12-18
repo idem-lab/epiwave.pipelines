@@ -1,6 +1,6 @@
 Package: GPreff
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Workflow constructor for lowerGPreff
+Version: 0.0.9
 Authors@R: c(
     person("Saras", "Windecker", role = c("aut", "cre"),
            email = "saras.windecker@gmail.com",
@@ -11,7 +11,9 @@ Authors@R: c(
            comment = c(ORCID = "0000-0003-1123-1472")),
     person("Nick", "Golding", role = "aut",
            comment = c(ORCID = "0000-0001-8916-5570")))
-Description: What the package does (one paragraph).
+Description: This package exists as a toolbox to construct workflows for the 
+    interacting with greta arrays created with lowerGPreff to model infections 
+    as a gaussian process over time. 
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
