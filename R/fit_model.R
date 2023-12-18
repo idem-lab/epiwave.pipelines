@@ -1,9 +1,23 @@
+#' Fit model
+#'
+#' @param model greta model object
+#' @param n_chains number of chains
+#' @param max_convergence_tries maximum number of times extra samples should be
+#'  drawn if convergence isn't reached
+#' @param warmup number of warmup samples
+#' @param n_samples number of additional samples after warmup
+#' @param n_extra_samples number of samples to be taken with `extra_samples()`
+#'
+#' @importFrom greta extra_samples hmc mcmc
+#'
+#' @return fitted draws
+#' @export
 fit_model <- function (model,
                        n_chains = 4,
                        max_convergence_tries = 5,
                        warmup = 1000,
-                       init_n_samples = 1000,
-                       iterations_per_step = 1000) {
+                       n_samples = 1000,
+                       n_extra_samples = 1000) {
 
     # # get stable inits
     # init <- generate_valid_inits(model = model,
@@ -11,12 +25,12 @@ fit_model <- function (model,
     #                              max_tries = 1000)
 
     # first pass at model fitting
-    draws <- mcmc(
-        m,
-        sampler = hmc(Lmin = 25, Lmax = 30),
+    draws <- greta::mcmc(
+        model,
+        sampler = greta::hmc(Lmin = 25, Lmax = 30),
         chains = n_chains,
         warmup = warmup,
-        n_samples = init_n_samples,
+        n_samples = n_samples,
         #initial_values = init,
         one_by_one = TRUE
     )
@@ -27,7 +41,7 @@ fit_model <- function (model,
     while(!finished & tries < max_convergence_tries) {
         draws <- greta::extra_samples(
             draws,
-            iterations_per_step,
+            n_extra_samples,
             one_by_one = TRUE
         )
         tries <- tries + 1
@@ -42,15 +56,33 @@ fit_model <- function (model,
     return(draws)
 }
 
-# has the sampler converged to our standards?
-check_convergence <- function(draws, max_r_hat = 1.1, min_n_eff = 1000) {
+#' Check convergence
+#'
+#' @description Check whether the sampler has converged to our standards.
+#'
+#' @param draws fitted draws
+#' @param max_r_hat maximum acceptable r hat
+#' @param min_n_eff minimum acceptable n effective
+#'
+#' @return TRUE or FALSE on whether convergence was achieved per parameters
+check_convergence <- function (draws,
+                               max_r_hat = 1.1,
+                               min_n_eff = 1000) {
+
     stats <- get_convergence_stats(draws)
     all(stats$r_hats < max_r_hat) &
         all(stats$n_eff >= min_n_eff)
+
 }
 
-# check convergence
-get_convergence_stats <- function(draws) {
+#' Get convergence stats
+#'
+#' @param draws fitted draws
+#'
+#' @importFrom coda effectiveSize gelman.diag
+#'
+#' @return invisibly return list of max r hat and min n effective
+get_convergence_stats <- function (draws) {
 
     r_hats <- coda::gelman.diag(draws, autoburnin = FALSE,
                                 multivariate = FALSE)$psrf[, 1]
