@@ -21,7 +21,7 @@ This workflow has separate components for PCR and RAT data, and estimates separa
 
   * add upstream
    ```
-   git remote add upstream git@github.com:infectious-disease-ecology-modelling/GPreff.git
+   git remote add upstream git@github.com:idem-lab/GPreff.git
    ```
 
   * verify by checking remotes again
@@ -29,8 +29,8 @@ This workflow has separate components for PCR and RAT data, and estimates separa
   git remote -v
    > origin  git@github.com:[YOURUSERNAME]/GPreff.git (fetch)
    > origin  git@github.com:[YOURUSERNAME]/GPreff.git (push)
-   > upstream        git@github.com:infectious-disease-ecology-modelling/GPreff.git (fetch)
-   > upstream        git@github.com:infectious-disease-ecology-modelling/GPreff.git (push)
+   > upstream        git@github.com:idem-lab/GPreff.git (fetch)
+   > upstream        git@github.com:idem-lab/GPreff.git (push)
   ```
 
 ### Making changes

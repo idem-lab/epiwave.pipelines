@@ -1,46 +1,66 @@
-# colours for plotting
-blue <- "steelblue3"
-purple <- "#C3A0E8"
-green <- RColorBrewer::brewer.pal(8, "Set2")[1]
-yellow <- RColorBrewer::brewer.pal(8, "Set2")[6]
-blue_green <- colorRampPalette(c("blue", green))(10)[8]
-yellow_green <- colorRampPalette(c("yellow", green))(10)[8]
-orange <- RColorBrewer::brewer.pal(8, "Set2")[2]
-pink <- RColorBrewer::brewer.pal(8, "Set2")[4]
-fifo <- "#A8EB12"
-
-
-
-#' takes in calculated values from timeseries samples, plot ribbon plot, adding
-#' dates and states labels, and optionally add in observed data as overlaying
-#' graphical elements
+#' Plot timeseries simulations
 #'
-#' @param simulations
-#' @param dates
-#' @param states
-#' @param base_colour
-#' @param start_date
-#' @param case_forecast
-#' @param type
-#' @param case_validation_data
+#' @description Takes in calculated values from timeseries samples, plots ribbon
+#'  plot, adds dates and states labels, and optionally adds in observed data
+#'  as overlaying graphical elements.
 #'
-#' @return
+#' @param filename output file name
+#' @param simulations simulations from greta model
+#' @param type select between notification, infection, and reff
+#' @param dates infection date sequence
+#' @param states vector of jurisdictions
+#' @param base_colour underlying color
+#' @param start_date first date on x axis
+#' @param end_date final date on x axis
+#' @param case_validation_data case data to optionally overlay
+#' @param infection_nowcast logical indicating whether we should annotate
+#'  nowcast horizon
+#' @param case_forecast logical whether we should forecast cases
+#' @param valid_mat matrix indicating which case data are valid
+#' @param nowcast_start start date for beginning of nowcast window
+#' @param dim_sim whether simulations are in one or two dimensions
+#' @param reff_ylim limits for y axis on reff plot
+#'
+#' @importFrom lubridate dmonths
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom tibble tibble
+#' @importFrom tidyr pivot_longer pivot_wider
+#' @importFrom dplyr mutate filter
+#' @importFrom ggplot2 ggplot aes xlab element_blank facet_wrap scale_x_date
+#'  scale_alpha scale_y_continuous geom_ribbon geom_line theme geom_rug
+#'  geom_point geom_vline annotate coord_cartesian geom_hline
+#' @importFrom cowplot theme_cowplot panel_border
+#'
+#' @return simulation plot
 #' @export
-#'
-#' @examples
-plot_timeseries_sims <- function(
+plot_timeseries_sims <- function (
+    filename,
     simulations = NULL,
-    type = c("notification", "infection","reff"),
+    type = c("notification", "infection", "reff"),
     dates,
     states,
     base_colour = grey(0.4),
     start_date = max(dates) - lubridate::dmonths(1),
     end_date = max(dates),
     case_validation_data = NULL,
+    infection_nowcast = TRUE,
     case_forecast = FALSE,
     valid_mat = NULL,
-    dim_sim = c("1","2")
-) {
+    nowcast_start = NULL,
+    dim_sim = c("1", "2"),
+    reff_ylim = c(0, 2)) {
+
+    # colours for plotting
+    blue <- "steelblue3"
+    purple <- "#C3A0E8"
+    green <- RColorBrewer::brewer.pal(8, "Set2")[1]
+    yellow <- RColorBrewer::brewer.pal(8, "Set2")[6]
+    blue_green <- colorRampPalette(c("blue", green))(10)[8]
+    yellow_green <- colorRampPalette(c("yellow", green))(10)[8]
+    orange <- RColorBrewer::brewer.pal(8, "Set2")[2]
+    pink <- RColorBrewer::brewer.pal(8, "Set2")[4]
+    fifo <- "#A8EB12"
+
     #check type to plot
     type <- match.arg(type)
     #check dimension of simulation
@@ -228,11 +248,11 @@ plot_timeseries_sims <- function(
                                          hjust = x_text_hjust,
                                          vjust = x_text_vjust)
         )
-    #grey box for projection
-    if (case_forecast) {
-        p <- p +   ggplot2::geom_vline(xintercept = projection_at, linetype = "dashed", colour = "grey60") +
+    #grey box for nowcast
+    if (infection_nowcast) {
+        p <- p +   ggplot2::geom_vline(xintercept = nowcast_start, linetype = "dashed", colour = "grey60") +
             ggplot2::annotate("rect",
-                     xmin = projection_at,
+                     xmin = nowcast_start,
                      xmax = max(df$date),
                      ymin = -Inf,
                      ymax = Inf,
@@ -269,11 +289,14 @@ plot_timeseries_sims <- function(
     #fix reff plot ylim
     if (type == 'reff') {
         # ylim <- c(min(df$ci_90_lo), max(df$ci_90_hi))
-        ylim <- c(0, 2)
-        p <- p + ggplot2::coord_cartesian(ylim = ylim) +
+        p <- p + ggplot2::coord_cartesian(ylim = reff_ylim) +
             ggplot2::geom_hline(yintercept = 1, linetype = 'dotted', colour = "black")
 
     }
 
-    p
+    pdf(filename, width = 10, height = 12)
+    print(p)
+    dev.off()
+
+    return(filename)
 }
