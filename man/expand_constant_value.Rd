@@ -19,7 +19,7 @@ expand_constant_value(dates, jurisdictions, constant_val, col_name)
 long tibble with constant value replicated
 }
 \description{
-The lowerGPreff model functions expect data in a long format,
+The epiwave model functions expect data in a long format,
 which is structed to have a value for every unique date and jurisdiction
 pair. This function create a tibble of this structure out of a single
 value that should be replicated in each cell.

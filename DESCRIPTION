@@ -1,5 +1,5 @@
-Package: GPreff
-Title: Constructor functions for lowerGPreff
+Package: epiwave.pipelines
+Title: Constructor pipelines for epiwave
 Version: 0.0.9
 Authors@R: c(
     person("Saras", "Windecker", role = c("aut", "cre"),
@@ -12,14 +12,14 @@ Authors@R: c(
     person("Nick", "Golding", role = "aut",
            comment = c(ORCID = "0000-0001-8916-5570")))
 Description: This package exists as a toolbox to interact with greta arrays 
-    created with lowerGPreff for modelling infections as a gaussian process 
+    created with epiwave for modelling infections as a gaussian process 
     over time. 
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
-URL: https://github.com/idem-lab/GPreff
-BugReports: https://github.com/idem-lab/GPreff/issues
+RoxygenNote: 7.3.1
+URL: https://github.com/idem-lab/epiwave.pipelines
+BugReports: https://github.com/idem-lab/epiwave.pipelines/issues
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

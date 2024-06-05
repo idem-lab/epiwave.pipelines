@@ -13,8 +13,8 @@ authors:
 - family-names: "Golding"
   given-names: "Nick"
   orcid: "https://orcid.org/0000-0001-8916-5570"
-title: "idem-lab/GPreff: First minor release"
+title: "idem-lab/epiwave.pipelines: First minor release"
 version: v.0.0.9-DEV
 date-released: 2023-12-18
 doi: XXXXXX
-url: "https://github.com/idem-lab/GPreff"
+url: "https://github.com/idem-lab/epiwave.pipelines"

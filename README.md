@@ -1,4 +1,4 @@
-# GPreff
+# epiwave.pipelines
 
 Repository for the new $R_eff$ model using Gaussian Processes with `greta`. This model is centered on estimation of the infection timeseries, from which $R_eff$ can be calculated when we add generation interval information.
 
@@ -8,29 +8,29 @@ This workflow has separate components for PCR and RAT data, and estimates separa
 ### Setting up
 
 1. Fork this repo into personal GitHub account
-2. Navigate to your fork [username]/GPreff and clone a local version to your machine
+2. Navigate to your fork [username]/epiwave.pipelines and clone a local version to your machine
 3. Open new project from version control in local RStudio
 4. Configure your remote repository
 
   * list remotes
    ```
    git remote -v
-   > origin  git@github.com:[YOURUSERNAME]/GPreff.git (fetch)
-   > origin  git@github.com:[YOURUSERNAME]/GPreff.git (push)
+   > origin  git@github.com:[YOURUSERNAME]/epiwave.pipelines.git (fetch)
+   > origin  git@github.com:[YOURUSERNAME]/epiwave.pipelines.git (push)
    ```
 
   * add upstream
    ```
-   git remote add upstream git@github.com:idem-lab/GPreff.git
+   git remote add upstream git@github.com:idem-lab/epiwave.pipelines.git
    ```
 
   * verify by checking remotes again
   ```
   git remote -v
-   > origin  git@github.com:[YOURUSERNAME]/GPreff.git (fetch)
-   > origin  git@github.com:[YOURUSERNAME]/GPreff.git (push)
-   > upstream        git@github.com:idem-lab/GPreff.git (fetch)
-   > upstream        git@github.com:idem-lab/GPreff.git (push)
+   > origin  git@github.com:[YOURUSERNAME]/epiwave.pipelines.git (fetch)
+   > origin  git@github.com:[YOURUSERNAME]/epiwave.pipelines.git (push)
+   > upstream        git@github.com:idem-lab/epiwave.pipelines.git (fetch)
+   > upstream        git@github.com:idem-lab/epiwave.pipelines.git (push)
   ```
 
 ### Making changes
