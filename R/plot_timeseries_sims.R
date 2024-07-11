@@ -76,7 +76,7 @@ plot_timeseries_sims <- function (
         ribbon_colour <- pink
     } else if (type == "reff") {
         cat("plotting instanteneous reproduction number by infection date!")
-        ylab_name <- expression(R["eff"]~from~"locally-acquired"~cases)
+        ylab_name <- expression(R["eff"] ~ from ~ cases)
         ribbon_colour <- green
     }
 
@@ -294,7 +294,7 @@ plot_timeseries_sims <- function (
 
     }
 
-    pdf(filename, width = 10, height = 12)
+    pdf(filename, width = 8, height = 6)
     print(p)
     dev.off()
 
