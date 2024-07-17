@@ -181,10 +181,10 @@ plot_timeseries_sims <- function (
 
 
     #dynamic date label and breaks
-    if (length(unique(df$date)) >= 180){
-        date_breaks <- "3 month"
-        date_minor_breaks <- "1 month" # minor breaks don't actually show on cowplots??
-        date_labels <- "%b%y"
+    if (length(unique(df$date)) >= 360){
+        date_breaks <- "1 month"
+        date_minor_breaks <- "2 weeks" # minor breaks don't actually show on cowplots??
+        date_labels <- "%b\n%Y"
         x_text_angle <- 0 #legacy code for consistency with current plot styles - to discuss
         x_text_size <- 9
         x_text_hjust <- 0.5
@@ -192,7 +192,7 @@ plot_timeseries_sims <- function (
     } else if(length(unique(df$date)) < 90){
         date_breaks <- "1 week"
         date_minor_breaks <- "1 day"
-        date_labels <- "%d%b"
+        date_labels <- "%b\n%Y"
         x_text_angle <- 0
         x_text_size <- 9
         x_text_hjust <- 0.5
@@ -200,7 +200,7 @@ plot_timeseries_sims <- function (
     } else {
         date_breaks <- "1 month"
         date_minor_breaks <- "2 weeks"
-        date_labels <- "%b%y"
+        date_labels <- "%b\n%Y"
         x_text_angle <- 0
         x_text_size <- 9
         x_text_hjust <- 0.5
