@@ -192,7 +192,7 @@ plot_timeseries_sims <- function (
     } else if(length(unique(df$date)) < 90){
         date_breaks <- "1 week"
         date_minor_breaks <- "1 day"
-        date_labels <- "%b\n%Y"
+        date_labels <- "%d%b"
         x_text_angle <- 0
         x_text_size <- 9
         x_text_hjust <- 0.5
@@ -294,7 +294,7 @@ plot_timeseries_sims <- function (
 
     }
 
-    pdf(filename, width = 8, height = 6)
+    png(filename, width = 8, height = 6, units = "in", res = 300)
     print(p)
     dev.off()
 
