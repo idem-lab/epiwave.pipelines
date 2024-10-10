@@ -10,7 +10,8 @@ fit_model(
   max_convergence_tries = 5,
   warmup = 1000,
   n_samples = 1000,
-  n_extra_samples = 1000
+  n_extra_samples = 1000,
+  one_by_one = TRUE
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ drawn if convergence isn't reached}
 \item{n_samples}{number of additional samples after warmup}
 
 \item{n_extra_samples}{number of samples to be taken with \code{extra_samples()}}
+
+\item{one_by_one}{whether to run TensorFlow MCMC code one iteration at a time,
+so that greta can handle numerical errors as 'bad' proposals.}
 }
 \value{
 fitted draws

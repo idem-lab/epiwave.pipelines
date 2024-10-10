@@ -7,6 +7,8 @@
 #' @param warmup number of warmup samples
 #' @param n_samples number of additional samples after warmup
 #' @param n_extra_samples number of samples to be taken with `extra_samples()`
+#' @param one_by_one whether to run TensorFlow MCMC code one iteration at a time,
+#'  so that greta can handle numerical errors as 'bad' proposals.
 #'
 #' @importFrom greta extra_samples hmc mcmc
 #'
@@ -17,7 +19,8 @@ fit_model <- function (model,
                        max_convergence_tries = 5,
                        warmup = 1000,
                        n_samples = 1000,
-                       n_extra_samples = 1000) {
+                       n_extra_samples = 1000,
+                       one_by_one = TRUE) {
 
     # # get stable inits
     # init <- generate_valid_inits(model = model,
@@ -32,7 +35,7 @@ fit_model <- function (model,
         warmup = warmup,
         n_samples = n_samples,
         #initial_values = init,
-        one_by_one = TRUE
+        one_by_one = one_by_one
     )
 
     # if it did not converge, try extending it a bunch more times
