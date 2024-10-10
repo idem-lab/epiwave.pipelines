@@ -96,7 +96,9 @@ plot_timeseries_sims <- function (filename,
 
     if (dim_sim == "2") {
         if (length(dates) != nrow(mean)) {
-            stop("Error: number of days in timeseries not equal to number of date labels provided! Did you mis-specify if forecasting is required?")
+            stop("Error: number of days in timeseries not equal to number of
+                 date labels provided! Did you mis-specify if forecasting
+                 is required?")
         }
         vals <- rbind(mean, ci_90_lo, ci_90_hi, ci_50_hi, ci_50_lo)
         full_dates <- rep(dates, 5)
