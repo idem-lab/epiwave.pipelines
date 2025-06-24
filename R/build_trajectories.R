@@ -50,12 +50,15 @@ build_trajectories <- function (param,
     n_jurisdictions <- dim(estimates)[3]
 
     # build output table
-    out <- lapply(1:n_jurisdictions, function(x) {
+    list_out <- lapply(1:n_jurisdictions, function(x) {
         cbind(data.frame(jurisdiction = jurisdictions[x],
                          date = as.character(infection_days)),
               as.data.frame(estimates[,,x]))
     })
 
-    names(out) <- jurisdictions
+    names(list_out) <- jurisdictions
+
+    out <- do.call('rbind', list_out)
+
     out
 }
